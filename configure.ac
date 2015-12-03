@@ -505,6 +505,7 @@ AC_CONFIG_FILES([java/com/google/scrollview/Makefile])
 AC_CONFIG_FILES([java/com/google/scrollview/events/Makefile])
 AC_CONFIG_FILES([java/com/google/scrollview/ui/Makefile])
 AC_CONFIG_FILES([doc/Makefile])
+AC_CONFIG_FILES([nsis/Makefile])
 AM_COND_IF([ENABLE_TRAINING], [AC_CONFIG_FILES(training/Makefile)])
 AC_OUTPUT
 

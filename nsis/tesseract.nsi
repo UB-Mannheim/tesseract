@@ -1,5 +1,6 @@
 ; (C) Copyright 2010, Sergey Bronnikov
 ; (C) Copyright 2010-2012, Zdenko Podobný
+; (C) Copyright 2015 Stefan Weil
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
 ; you may not use this file except in compliance with the License.
@@ -11,21 +12,53 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 
+; TODO:
+; * Fix PreventMultipleInstances.
+; * Add Tesseract icon and images for installer.
+; * Add support for 64 bit Tesseract.
+
 SetCompressor /FINAL /SOLID lzma
-;SetCompressor lzma
 SetCompressorDictSize 32
 
-!define VERSION 3.02.02
+; Settings which normally should be passed as command line arguments.
+!ifndef SRCDIR
+!define SRCDIR .
+!endif
+!ifndef VERSION
+!define VERSION 3.05-dev
+!endif
+
 !define PRODUCT_NAME "Tesseract-OCR"
 !define PRODUCT_VERSION "${VERSION}"
 !define PRODUCT_PUBLISHER "Tesseract-OCR community"
-!define PRODUCT_WEB_SITE "http://code.google.com/p/tesseract-ocr"
+!define PRODUCT_WEB_SITE "https://github.com/tesseract-ocr/tesseract"
+!ifdef OLD
 !define FILE_URL "http://tesseract-ocr.googlecode.com/files/"
+!endif
+!define GITHUB_RAW_FILE_URL \
+  "https://raw.githubusercontent.com/tesseract-ocr/tessdata/master"
+
+!ifdef CROSSBUILD
+!addincludedir ${SRCDIR}\nsis\include
+!addplugindir ${SRCDIR}\nsis\plugins
+!ifdef SHARED
+!define APIDIR "../api/.libs"
+!else
+!define APIDIR "../api"
+!endif
+!define TRAININGDIR "../training"
+!else
+!define APIDIR "LIB_Release"
+!define TRAININGDIR "LIB_Release"
+!endif
 
 # General Definitions
-Name "${PRODUCT_NAME} ${VERSION} for Windows"
-Caption "Tesseract-OCR ${VERSION}"
-BrandingText /TRIMCENTER "(c) 2010-2012 Tesseract-OCR "
+Name "${PRODUCT_NAME}"
+Caption "${PRODUCT_NAME} ${VERSION}"
+!ifndef CROSSBUILD
+BrandingText /TRIMCENTER "(c) 2010-2015 ${PRODUCT_NAME}"
+!endif
+
 !define REGKEY "SOFTWARE\${PRODUCT_NAME}"
 ; HKLM (all users) vs HKCU (current user) defines
 !define env_hklm 'HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"'
@@ -47,11 +80,12 @@ BrandingText /TRIMCENTER "(c) 2010-2012 Tesseract-OCR "
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_BITMAP_NOSTRETCH
 !define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\modern-install-blue-full.ico"
-!define MUI_FINISHPAGE_LINK "http://code.google.com/p/tesseract-ocr/"
-!define MUI_FINISHPAGE_LINK_LOCATION "http://code.google.com/p/tesseract-ocr/"
+!define MUI_FINISHPAGE_LINK "View Tesseract on GitHub"
+!define MUI_FINISHPAGE_LINK_LOCATION "https://github.com/tesseract-ocr/tesseract"
 !define MUI_FINISHPAGE_NOAUTOCLOSE
-!define MUI_FINISHPAGE_SHOWREADME "notepad $INSTDIR\doc\README"
+!define MUI_FINISHPAGE_SHOWREADME "iexplore $INSTDIR\doc\README"
 !define MUI_FINISHPAGE_SHOWREADME_FUNCTION ShowReadme
+!define MUI_FINISHPAGE_SHOWREADME_TEXT "Show README"
 !define MUI_LICENSEPAGE_CHECKBOX
 !define MUI_STARTMENUPAGE_REGISTRY_ROOT HKLM
 !define MUI_STARTMENUPAGE_REGISTRY_KEY ${REGKEY}
@@ -77,13 +111,13 @@ Var OLD_KEY
 
 # Installer pages
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "..\COPYING"
+!insertmacro MUI_PAGE_LICENSE "${SRCDIR}\COPYING"
 !insertmacro MULTIUSER_PAGE_INSTALLMODE
 !ifdef VERSION
   Page custom PageReinstall PageLeaveReinstall
 !endif
-!insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_COMPONENTS
+!insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_STARTMENU Application $StartMenuGroup
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -92,6 +126,8 @@ Var OLD_KEY
 
 # Languages
 !insertmacro MUI_LANGUAGE "English"
+!insertmacro MUI_LANGUAGE "French"
+!insertmacro MUI_LANGUAGE "German"
 !insertmacro MUI_LANGUAGE "Italian"
 !insertmacro MUI_LANGUAGE "Russian"
 !insertmacro MUI_LANGUAGE "Slovak"
@@ -115,7 +151,7 @@ OutFile tesseract-ocr-setup.exe
 !endif
 
 !macro AddToPath
-  # TODO(zdenop): Check if $INSTDIR is in path. If yes, that do not append it
+  # TODO(zdenop): Check if $INSTDIR is in path. If yes, do not append it.
   # append bin path to user PATH environment variable
   StrCpy $PathKey "HKLM"
   StrCmp $MultiUser.InstallMode "AllUsers" +2
@@ -154,30 +190,74 @@ OutFile tesseract-ocr-setup.exe
 !macroend
 
 !macro Download_Lang_Data Lang
-  IfFileExists $TEMP/${Lang} dlok
-  ;StrCpy $1 ${Lang}
-  ;StrCpy $2 "$INSTDIR\tessdata\$1"
-  ;inetc::get /caption "Downloading $1" /popup "" "${FILE_URL}/$1" $2 /end
-  inetc::get /caption "Downloading ${Lang}" /popup "" "${FILE_URL}/${Lang}" $TEMP/${Lang} /end
+  ; Download traineddata file.
+  DetailPrint "Download: ${Lang} language file"
+  inetc::get /caption "Downloading ${Lang} language file" \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.traineddata" $INSTDIR/tessdata/${Lang}.traineddata \
+      /END
     Pop $0 # return value = exit code, "OK" if OK
-    StrCmp $0 "OK" dlok
-    MessageBox MB_OK|MB_ICONEXCLAMATION "http download error. Download Status of ${Lang}: $0. Click OK to continue." /SD IDOK
-    Goto error
-  dlok:
-    DetailPrint "Extracting ${Lang}"
-    untgz::extract "-j" "-d" "$INSTDIR\tessdata\" "$TEMP/${Lang}"
-    # tarbal has to be created with option --old-archive otherwise there will be error
-    # untgz::extract failed because of checksum
-  error:
-    Delete "$TEMP\${Lang}"
+    StrCmp $0 "OK" +2
+    MessageBox MB_OK|MB_ICONEXCLAMATION \
+      "Download error. Status of ${Lang}: $0. Click OK to continue." /SD IDOK
+!macroend
+
+!macro Download_Lang_Data_with_Cube Lang
+  ; Download traineddata file.
+  DetailPrint "Download: ${Lang} language files"
+  inetc::get /CAPTION "Downloading ${Lang} language files" \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.fold" $INSTDIR/tessdata/${Lang}.cube.fold \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.lm" $INSTDIR/tessdata/${Lang}.cube.lm \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.nn" $INSTDIR/tessdata/${Lang}.cube.nn \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.params" $INSTDIR/tessdata/${Lang}.cube.params \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.size" $INSTDIR/tessdata/${Lang}.cube.size \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.word-freq" $INSTDIR/tessdata/${Lang}.cube.word-freq \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.traineddata" $INSTDIR/tessdata/${Lang}.traineddata \
+      /END
+    Pop $0 # return value = exit code, "OK" if OK
+    StrCmp $0 "OK" +2
+    MessageBox MB_OK|MB_ICONEXCLAMATION \
+      "Download error. Status of ${Lang}: $0. Click OK to continue." /SD IDOK
+!macroend
+
+!macro Download_Lang_Data_with_Cube_bigrams Lang
+  ; Download traineddata file.
+  DetailPrint "Download: ${Lang} language files"
+  inetc::get /CAPTION "Downloading ${Lang} language files" \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.bigrams" $INSTDIR/tessdata/${Lang}.cube.bigrams \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.fold" $INSTDIR/tessdata/${Lang}.cube.fold \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.lm" $INSTDIR/tessdata/${Lang}.cube.lm \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.nn" $INSTDIR/tessdata/${Lang}.cube.nn \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.params" $INSTDIR/tessdata/${Lang}.cube.params \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.size" $INSTDIR/tessdata/${Lang}.cube.size \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.cube.word-freq" $INSTDIR/tessdata/${Lang}.cube.word-freq \
+      "${GITHUB_RAW_FILE_URL}/${Lang}.traineddata" $INSTDIR/tessdata/${Lang}.traineddata \
+      /END
+    Pop $0 # return value = exit code, "OK" if OK
+    StrCmp $0 "OK" +2
+    MessageBox MB_OK|MB_ICONEXCLAMATION \
+      "Download error. Status of ${Lang}: $0. Click OK to continue." /SD IDOK
+!macroend
+
+!macro Download_Lang_Data_File Lang_File
+  ; Download single file.
+  DetailPrint "Download: ${Lang_File} language file"
+  inetc::get /caption "Downloading ${Lang_File} language file" \
+      "${GITHUB_RAW_FILE_URL}/${Lang_File}" $INSTDIR/tessdata/${Lang_File} \
+      /END
+    Pop $0 # return value = exit code, "OK" if OK
+    StrCmp $0 "OK" +2
+    MessageBox MB_OK|MB_ICONEXCLAMATION \
+      "Download error. Status of ${Lang_File}: $0. Click OK to continue." /SD IDOK
 !macroend
 
 !macro Download_Leptonica DataUrl
   IfFileExists $TEMP/leptonica.zip dlok
-  inetc::get /caption "Downloading $1" /popup "" ${DataUrl} $TEMP/leptonica.zip /end
+  inetc::get /caption "Downloading $1" /popup "" \
+      ${DataUrl} $TEMP/leptonica.zip /END
     Pop $R0 # return value = exit code, "OK" if OK
     StrCmp $R0 "OK" dlok
-    MessageBox MB_OK|MB_ICONEXCLAMATION "http download error. Download Status of $1: $R0. Click OK to continue." /SD IDOK
+    MessageBox MB_OK|MB_ICONEXCLAMATION \
+      "Download error. Status of $1: $R0. Click OK to continue." /SD IDOK
     Goto error
   dlok:
     nsisunz::UnzipToLog "$TEMP/leptonica.zip" "$INSTDIR"
@@ -189,26 +269,15 @@ OutFile tesseract-ocr-setup.exe
     Delete "$TEMP\leptonica.zip"
 !macroend
 
-!macro Download_Lang_Data_gz Lang
-  ;IfFileExists $TEMP/${Lang} dlok
-  StrCpy $1 ${Lang}
-  StrCpy $2 "$INSTDIR\tessdata\$1"
-  inetc::get /caption "Downloading $1" /popup "" "http://tesseract-ocr.googlecode.com/files/$1" $2 /end
-    Pop $0 # return value = exit code, "OK" if OK
-    StrCmp $0 "OK" dlok
-    MessageBox MB_OK|MB_ICONEXCLAMATION "http download error. Download Status of $1: $0. Click OK to continue." /SD IDOK
-    Goto error
-  dlok:
-    ExecWait  '"$INSTDIR\gzip.exe" -d "$2"'
-  error:
-!macroend
-
+!ifdef OLD
 !macro Download_Data2 Filename Komp
   IfFileExists $TEMP/${Filename} dlok
-  inetc::get /caption "Downloading $1" /popup "" "${FILE_URL}/${Filename}" $TEMP/${Filename} /end
+    inetc::get /caption "Downloading $1" /popup "" \
+      "${FILE_URL}/${Filename}" $TEMP/${Filename} /END
     Pop $R0 # return value = exit code, "OK" if OK
     StrCmp $R0 "OK" dlok
-    MessageBox MB_OK|MB_ICONEXCLAMATION "http download error. Download Status of $1: $R0. Click OK to continue." /SD IDOK
+    MessageBox MB_OK|MB_ICONEXCLAMATION \
+      "Download error. Status of $1: $R0. Click OK to continue." /SD IDOK
     Goto error
   dlok:
     ${If} ${Komp} == "tgz"
@@ -233,10 +302,12 @@ OutFile tesseract-ocr-setup.exe
 
 !macro Download_Data Filename Komp
   IfFileExists $TEMP/${Filename} dlok
-  inetc::get /caption "Downloading $1" /popup "" "${FILE_URL}/${Filename}" $TEMP/${Filename} /end
+  inetc::get /caption "Downloading $1" /popup "" \
+      "${FILE_URL}/${Filename}" $TEMP/${Filename} /END
     Pop $R0 # return value = exit code, "OK" if OK
     StrCmp $R0 "OK" dlok
-    MessageBox MB_OK|MB_ICONEXCLAMATION "http download error. Download Status of $1: $R0. Click OK to continue." /SD IDOK
+    MessageBox MB_OK|MB_ICONEXCLAMATION \
+      "Download error. Status of $1: $R0. Click OK to continue." /SD IDOK
     Goto end
   dlok:
     ${If} ${Komp} == "tgz"
@@ -261,71 +332,77 @@ OutFile tesseract-ocr-setup.exe
     RMDir /r "$TEMP\Tesseract-OCR"
   end:
 !macroend
+!endif ; OLD
 
 Section -Main SEC0000
   ; mark as read only component
   SectionIn RO
   SetOutPath "$INSTDIR"
   # files included in distribution
-  File LIB_Release\tesseract.exe
-  File gzip.exe
-  File tar.exe
+  File ${APIDIR}\tesseract.exe
+!ifdef SHARED
+  File ${APIDIR}\libtesseract-3.dll
+!endif
+!ifdef CROSSBUILD
+  File ${SRCDIR}\dll\i686-w64-mingw32\*.dll
+!endif
+  File ${SRCDIR}\nsis\tar.exe
   CreateDirectory "$INSTDIR\java"
   SetOutPath "$INSTDIR\java"
   File ..\java\ScrollView.jar
   CreateDirectory "$INSTDIR\tessdata"
   CreateDirectory "$INSTDIR\tessdata\configs"
   SetOutPath "$INSTDIR\tessdata\configs"
-  File ..\tessdata\configs\ambigs.train
-  File ..\tessdata\configs\api_config
-  File ..\tessdata\configs\bigram
-  File ..\tessdata\configs\box.train
-  File ..\tessdata\configs\box.train.stderr
-  File ..\tessdata\configs\digits
-  File ..\tessdata\configs\hocr
-  File ..\tessdata\configs\inter
-  File ..\tessdata\configs\kannada
-  File ..\tessdata\configs\linebox
-  File ..\tessdata\configs\logfile
-  File ..\tessdata\configs\makebox
-  File ..\tessdata\configs\quiet
-  File ..\tessdata\configs\rebox
-  File ..\tessdata\configs\strokewidth
-  File ..\tessdata\configs\unlv
+  File ${SRCDIR}\tessdata\configs\ambigs.train
+  File ${SRCDIR}\tessdata\configs\api_config
+  File ${SRCDIR}\tessdata\configs\bigram
+  File ${SRCDIR}\tessdata\configs\box.train
+  File ${SRCDIR}\tessdata\configs\box.train.stderr
+  File ${SRCDIR}\tessdata\configs\digits
+  File ${SRCDIR}\tessdata\configs\hocr
+  File ${SRCDIR}\tessdata\configs\inter
+  File ${SRCDIR}\tessdata\configs\kannada
+  File ${SRCDIR}\tessdata\configs\linebox
+  File ${SRCDIR}\tessdata\configs\logfile
+  File ${SRCDIR}\tessdata\configs\makebox
+  File ${SRCDIR}\tessdata\configs\quiet
+  File ${SRCDIR}\tessdata\configs\rebox
+  File ${SRCDIR}\tessdata\configs\strokewidth
+  File ${SRCDIR}\tessdata\configs\unlv
   CreateDirectory "$INSTDIR\tessdata\tessconfigs"
   SetOutPath "$INSTDIR\tessdata\tessconfigs"
-  File ..\tessdata\tessconfigs\batch
-  File ..\tessdata\tessconfigs\batch.nochop
-  File ..\tessdata\tessconfigs\matdemo
-  File ..\tessdata\tessconfigs\msdemo
-  File ..\tessdata\tessconfigs\nobatch
-  File ..\tessdata\tessconfigs\segdemo
+  File ${SRCDIR}\tessdata\tessconfigs\batch
+  File ${SRCDIR}\tessdata\tessconfigs\batch.nochop
+  File ${SRCDIR}\tessdata\tessconfigs\matdemo
+  File ${SRCDIR}\tessdata\tessconfigs\msdemo
+  File ${SRCDIR}\tessdata\tessconfigs\nobatch
+  File ${SRCDIR}\tessdata\tessconfigs\segdemo
   CreateDirectory "$INSTDIR\doc"
   SetOutPath "$INSTDIR\doc"
-  File ..\AUTHORS
-  File ..\COPYING
-  File ..\eurotext.tif
-  File ..\phototest.tif
-  File ..\README
-  File ..\ReleaseNotes
+  File ${SRCDIR}\AUTHORS
+  File ${SRCDIR}\COPYING
+  File ${SRCDIR}\testing\eurotext.tif
+  File ${SRCDIR}\testing\phototest.tif
+  File ${SRCDIR}\testing\README
+  File ${SRCDIR}\ReleaseNotes
 SectionEnd
 
-Section "Traning Tools" SecTr
+Section "Training Tools" SecTr
   SectionIn 1
   SetOutPath "$INSTDIR"
-  File LIB_Release\cntraining.exe
-  File LIB_Release\combine_tessdata.exe
-  File LIB_Release\mftraining.exe
-  File LIB_Release\unicharset_extractor.exe
-  File LIB_Release\wordlist2dawg.exe
-  File LIB_Release\classifier_tester.exe
-  File LIB_Release\dawg2wordlist.exe
-  File LIB_Release\ambiguous_words.exe
-  File LIB_Release\shapeclustering.exe
+  File ${TRAININGDIR}\ambiguous_words.exe
+  File ${TRAININGDIR}\classifier_tester.exe
+  File ${TRAININGDIR}\cntraining.exe
+  File ${TRAININGDIR}\combine_tessdata.exe
+  File ${TRAININGDIR}\dawg2wordlist.exe
+  File ${TRAININGDIR}\mftraining.exe
+  File ${TRAININGDIR}\unicharset_extractor.exe
+  File ${TRAININGDIR}\wordlist2dawg.exe
+  File ${TRAININGDIR}\shapeclustering.exe
 SectionEnd
 
 Section -post SEC0001
-  ;Store installation folder - we use allways HKLM!
+  ;Store installation folder - we use always HKLM!
   WriteRegStr HKLM "${REGKEY}" "Path" "$INSTDIR"
   WriteRegStr HKLM "${REGKEY}" "Mode" $MultiUser.InstallMode
   WriteRegStr HKLM "${REGKEY}" "InstallDir" "$INSTDIR"
@@ -334,17 +411,17 @@ Section -post SEC0001
   ;WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "Tesseract-OCR" "$INSTDIR\tesseract.exe"
   ; Register to Add/Remove program in control panel
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "DisplayName" "${PRODUCT_NAME} - open source OCR engine"
-  WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" DisplayVersion "${VERSION}"
-  WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" Publisher "${PRODUCT_PUBLISHER}"
-  WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" URLInfoAbout "${PRODUCT_WEB_SITE}"
+  WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "DisplayVersion" "${VERSION}"
+  WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "Publisher" "${PRODUCT_PUBLISHER}"
+  WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "DisplayIcon" "$INSTDIR\uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "UninstallString" "$INSTDIR\uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
-  WriteRegDWORD HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" NoModify 1
-  WriteRegDWORD HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" NoRepair 1
+  WriteRegDWORD HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "NoModify" 1
+  WriteRegDWORD HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "NoRepair" 1
   ;Create uninstaller
   WriteUninstaller "$INSTDIR\Uninstall.exe"
-  ;ExecShell "open" "http://code.google.com/p/tesseract-ocr/"
+  ;ExecShell "open" "https://github.com/tesseract-ocr/tesseract"
   ;ExecShell "open" '"$INSTDIR"'
   ;BringToFront
 SectionEnd
@@ -361,18 +438,19 @@ Section "Shortcuts creation" SecCS
   ;CreateShortCut "$QUICKLAUNCH\.lnk" "$INSTDIR\tesseract.exe" "" "$INSTDIR\tesseract.exe" 0
 SectionEnd
 
-SectionGroup "Registry setttings" SecRS
-    Section "Add to Path" SecRS_path
+SectionGroup "Registry settings" SecRS
+    Section /o "Add to Path" SecRS_path
         !insertmacro AddToPath
     SectionEnd
-    Section "Set TESSDATA_PREFIX variable" SecRS_tessdata
+    Section /o "Set TESSDATA_PREFIX variable" SecRS_tessdata
         !insertmacro SetTESSDATA
     SectionEnd
 SectionGroupEnd
 
+!ifdef OLD
 SectionGroup "Tesseract development files" SecGrp_dev
-    Section /o "Download and install tesseract libraries including header files" SecLang_tlib
-    !insertmacro Download_Data2 tesseract-ocr-3.02.02-win32-lib-include-dirs.zip zip
+    Section /o "tesseract libraries including header files" SecLang_tlib
+    !insertmacro Download_Data2 tesseract-ocr-${VERSION}-win32-lib-include-dirs.zip zip
     CopyFiles $INSTDIR\lib\libtesseract*.dll $INSTDIR\  ; $INSTDIR is in the path!
     Delete $INSTDIR\lib\libtesseract*.dll
     SectionEnd
@@ -385,298 +463,578 @@ SectionGroup "Tesseract development files" SecGrp_dev
     !insertmacro Download_Data2 tesseract-ocr-API-Example-vs2008.zip zip
     SectionEnd
     Section /o "Download and install tesseract source code" SecLang_source
-    !insertmacro Download_Data tesseract-ocr-3.02.02.tar.gz tgz
+    !insertmacro Download_Data tesseract-ocr-${VERSION}.tar.gz tgz
     SectionEnd
     Section /o "Download and install VS C++ 2008 solution for tesseract" SecLang_vs2008
     !insertmacro Download_Data tesseract-ocr-3.02-vs2008.zip zip
     SectionEnd
     Section /o "Download and install doxygen documentation for tesseract" SecLang_doxygen
-    !insertmacro Download_Data tesseract-ocr-3.02.02-doc-html.tar.gz tgz
+    !insertmacro Download_Data tesseract-ocr-${VERSION}-doc-html.tar.gz tgz
     CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\DoxygenDoc.lnk" "$INSTDIR\tesseract-ocr\doc\html\index.html"
+    SectionEnd
+SectionGroupEnd
+!endif ; OLD
+
+; Language files
+SectionGroup "Language data" SecGrp_LD
+    Section "English" SecLang_eng
+    SectionIn RO
+      SetOutPath "$INSTDIR\tessdata"
+      File ${SRCDIR}\tessdata\eng.*
+    SectionEnd
+
+    Section "Orientation and script detection" SecLang_osd
+    SectionIn 1
+      SetOutPath "$INSTDIR\tessdata"
+      File ${SRCDIR}\tessdata\osd.*
     SectionEnd
 SectionGroupEnd
 
 ; Download language files
-SectionGroup "Language data" SecGrp_LD
-    Section "English language data" SecLang_eng
-    SectionIn RO
-      SetOutPath "$INSTDIR\tessdata"
-      File ..\tessdata\eng.*
-    SectionEnd
-
-    Section "Orientation and script detection data" SecLang_osd
-    SectionIn 1
-      SetOutPath "$INSTDIR\tessdata"
-     File ..\tessdata\osd.*
-    SectionEnd
-
-    Section /o "Download and install Math / equation detection module" SecLang_equ
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.equ.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Afrikaans language data" SecLang_afr
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.afr.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Albanian language data" SecLang_sqi
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.sqi.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Arabic language data" SecLang_ara
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.ara.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Azerbaijani language data" SecLang_aze
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.aze.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Basque language data" SecLang_eus
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.eus.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Belarusian language data" SecLang_bel
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.bel.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Bengali language data" SecLang_ben
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.ben.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Bulgarian language data" SecLang_bul
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.bul.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Catalan language data" SecLang_cat
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.cat.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Cherokee language data" SecLang_chr
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.chr.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Chinese (Traditional) language data" SecLang_chi_tra
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.chi_tra.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Chinese (Simplified) language data" SecLang_chi_sim
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.chi_sim.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Croatian language data" SecLang_hrv
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.hrv.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Czech language data" SecLang_ces
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.ces.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Danish language data" SecLang_dan
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.dan.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Danish (Fraktur) language data" SecLang_dan_frak
-    !insertmacro Download_Lang_Data_gz dan-frak.traineddata.gz
-    SectionEnd
-
-    Section /o "Download and install Dutch language data" SecLang_nld
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.nld.tar.gz
-    SectionEnd
-
-    Section /o "Download and install English - Middle (1100-1500) language data" SecLang_enm
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.enm.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Esperanto language data" SecLang_epo
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.epo.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Estonian language data" SecLang_est
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.est.tar.gz
-    SectionEnd
-
-    Section /o "Download and install German language data" SecLang_deu
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.deu.tar.gz
-    SectionEnd
-
-    Section /o "Download and install German (Fraktur) language data" SecLang_deu_frak
-    !insertmacro Download_Lang_Data_gz deu-frak.traineddata.gz
-    SectionEnd
-
-    Section /o "Download and install Greek language data" SecLang_ell
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.ell.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Greek - Ancient language data" SecLang_grc
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.grc.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Finnish language data" SecLang_fin
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.fin.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Frankish language data" SecLang_frk
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.frk.tar.gz
-    SectionEnd
-
-    Section /o "Download and install French language data" SecLang_fra
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.fra.tar.gz
-    SectionEnd
-
-    Section /o "Download and install French - Middle(ca. 1400-1600) language data" SecLang_frm
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.frm.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Hebrew language data" SecLang_heb
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.heb.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Hebrew (community traning) language data" SecLang_heb_com
-    !insertmacro Download_Lang_Data tesseract-ocr-3.01.heb-com.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Hindi language data" SecLang_hin
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.hin.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Hungarian language data" SecLang_hun
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.hun.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Icelandic language data" SecLang_isl
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.isl.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Indonesian language data" SecLang_ind
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.ind.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Italian language data" SecLang_ita
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.ita.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Italian (Old) language data" SecLang_ita_old
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.ita_old.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Japanese language data" SecLang_jpn
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.jpn.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Kannada language data" SecLang_kan
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.kan.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Korean language data" SecLang_kor
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.kor.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Latvian language data" SecLang_lav
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.lav.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Lithuanian language data" SecLang_lit
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.lit.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Macedonian language data" SecLang_mkd
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.mkd.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Malay language data" SecLang_msa
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.msa.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Malayalam language data" SecLang_mal
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.mal.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Maltese language data" SecLang_mlt
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.mlt.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Norwegian language data" SecLang_nor
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.nor.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Polish language data" SecLang_pol
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.pol.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Portuguese language data" SecLang_por
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.por.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Romanian language data" SecLang_ron
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.ron.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Russian language data" SecLang_rus
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.rus.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Slovak language data" SecLang_slk
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.slk.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Slovak (Fraktur) language data" SecLang_slk_frak
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.slk_frak.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Slovenian language data" SecLang_slv
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.slv.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Spanish language data" SecLang_spa
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.spa.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Spanish (Old) language data" SecLang_spa_old
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.spa_old.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Serbian language data" SecLang_srp
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.srp.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Swahili language data" SecLang_swa
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.swa.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Swedish language data" SecLang_swe
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.swe.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Swedish (Fraktur) language data" SecLang_swe_frak
-    !insertmacro Download_Lang_Data_gz swe-frak.traineddata.gz
-    SectionEnd
-
-    Section /o "Download and install Tagalog language data" SecLang_tgl
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.tgl.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Tamil language data" SecLang_tam
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.tam.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Telugu language data" SecLang_tel
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.tel.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Thai language data" SecLang_tha
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.tha.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Turkish language data" SecLang_tur
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.tur.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Ukrainian language data" SecLang_ukr
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.ukr.tar.gz
-    SectionEnd
-
-    Section /o "Download and install Vietnamese language data" SecLang_vie
-    !insertmacro Download_Lang_Data tesseract-ocr-3.02.vie.tar.gz
-    SectionEnd
+SectionGroup "Additional language data (download)" SecGrp_ALD
+  Section /o "Math / equation detection module" SecLang_equ
+    AddSize 2200
+    !insertmacro Download_Lang_Data equ
+  SectionEnd
+
+  ; The language names are documented here:
+  ; https://github.com/tesseract-ocr/tesseract/blob/master/doc/tesseract.1.asc#languages
+
+  Section /o "Afrikaans" SecLang_afr
+    AddSize 5080
+    !insertmacro Download_Lang_Data afr
+  SectionEnd
+
+  Section /o "Albanian" SecLang_sqi
+    AddSize 6436
+    !insertmacro Download_Lang_Data sqi
+  SectionEnd
+
+  Section /o "Amharic" SecLang_amh
+    AddSize 2888
+    !insertmacro Download_Lang_Data amh
+  SectionEnd
+
+  Section /o "Arabic" SecLang_ara
+    AddSize 27888
+    !insertmacro Download_Lang_Data_with_Cube_bigrams ara
+  SectionEnd
+
+  Section /o "Assamese" SecLang_asm
+    AddSize 15460
+    !insertmacro Download_Lang_Data asm
+  SectionEnd
+
+  Section /o "Azerbaijani" SecLang_aze
+    AddSize 6464
+    !insertmacro Download_Lang_Data aze
+  SectionEnd
+
+  Section /o "Azerbaijani (Cyrilic)" SecLang_aze_cyrl
+    AddSize 2720
+    !insertmacro Download_Lang_Data aze_cyrl
+  SectionEnd
+
+  Section /o "Basque" SecLang_eus
+    AddSize 4856
+    !insertmacro Download_Lang_Data eus
+  SectionEnd
+
+  Section /o "Belarusian" SecLang_bel
+    AddSize 6664
+    !insertmacro Download_Lang_Data bel
+  SectionEnd
+
+  Section /o "Bengali" SecLang_ben
+    AddSize 15192
+    !insertmacro Download_Lang_Data ben
+  SectionEnd
+
+  Section /o "Tibetan" SecLang_bod
+    AddSize 24648
+    !insertmacro Download_Lang_Data bod
+  SectionEnd
+
+  Section /o "Bosnian" SecLang_bos
+    AddSize 5308
+    !insertmacro Download_Lang_Data bos
+  SectionEnd
+
+  Section /o "Bulgarian" SecLang_bul
+    AddSize 5888
+    !insertmacro Download_Lang_Data bul
+  SectionEnd
+
+  Section /o "Catalan" SecLang_cat
+    AddSize 5232
+    !insertmacro Download_Lang_Data cat
+  SectionEnd
+
+  Section /o "Cebuano" SecLang_ceb
+    AddSize 1648
+    !insertmacro Download_Lang_Data ceb
+  SectionEnd
+
+  Section /o "Cherokee" SecLang_chr
+    AddSize 1060
+    !insertmacro Download_Lang_Data chr
+  SectionEnd
+
+  Section /o "Chinese (Traditional)" SecLang_chi_tra
+    AddSize 55368
+    !insertmacro Download_Lang_Data chi_tra
+  SectionEnd
+
+  Section /o "Chinese (Simplified)" SecLang_chi_sim
+    AddSize 41108
+    !insertmacro Download_Lang_Data chi_sim
+  SectionEnd
+
+  Section /o "Croatian" SecLang_hrv
+    AddSize 8924
+    !insertmacro Download_Lang_Data hrv
+  SectionEnd
+
+  Section /o "Czech" SecLang_ces
+    AddSize 11620
+    !insertmacro Download_Lang_Data ces
+  SectionEnd
+
+  Section /o "Welsh" SecLang_cym
+    AddSize 3704
+    !insertmacro Download_Lang_Data cym
+  SectionEnd
+
+  Section /o "Danish" SecLang_dan
+    AddSize 7172
+    !insertmacro Download_Lang_Data dan
+  SectionEnd
+
+  Section /o "Danish (Fraktur)" SecLang_dan_frak
+    AddSize 1588
+    !insertmacro Download_Lang_Data dan_frak
+  SectionEnd
+
+  Section /o "Dutch" SecLang_nld
+    AddSize 16704
+    !insertmacro Download_Lang_Data nld
+  SectionEnd
+
+  Section /o "English - Middle (1100-1500)" SecLang_enm
+    AddSize 2060
+    !insertmacro Download_Lang_Data enm
+  SectionEnd
+
+  Section /o "Esperanto" SecLang_epo
+    AddSize 6448
+    !insertmacro Download_Lang_Data epo
+  SectionEnd
+
+  Section /o "Estonian" SecLang_est
+    AddSize 9424
+    !insertmacro Download_Lang_Data est
+  SectionEnd
+
+  Section /o "German" SecLang_deu
+    AddSize 13060
+    !insertmacro Download_Lang_Data deu
+  SectionEnd
+
+  Section /o "German (Fraktur)" SecLang_deu_frak
+    AddSize 1936
+    !insertmacro Download_Lang_Data deu_frak
+  SectionEnd
+
+  Section /o "Dzongkha" SecLang_dzo
+    AddSize 3236
+    !insertmacro Download_Lang_Data dzo
+  SectionEnd
+
+  Section /o "Greek" SecLang_ell
+    AddSize 5296
+    !insertmacro Download_Lang_Data ell
+  SectionEnd
+
+  Section /o "Greek - Ancient" SecLang_grc
+    AddSize 5064
+    !insertmacro Download_Lang_Data grc
+  SectionEnd
+
+  Section /o "Persian" SecLang_fas
+    AddSize 4692
+    !insertmacro Download_Lang_Data fas
+  SectionEnd
+
+  Section /o "Finnish" SecLang_fin
+    AddSize 12964
+    !insertmacro Download_Lang_Data fin
+  SectionEnd
+
+  Section /o "Frankish" SecLang_frk
+    AddSize 16072
+    !insertmacro Download_Lang_Data frk
+  SectionEnd
+
+  Section /o "French" SecLang_fra
+    AddSize 36504
+    !insertmacro Download_Lang_Data_File fra.tesseract_cube.nn
+    !insertmacro Download_Lang_Data_with_Cube_bigrams fra
+  SectionEnd
+
+  Section /o "French - Middle (ca. 1400-1600)" SecLang_frm
+    AddSize 15468
+    !insertmacro Download_Lang_Data frm
+  SectionEnd
+
+  Section /o "Irish" SecLang_gle
+    AddSize 3404
+    !insertmacro Download_Lang_Data gle
+  SectionEnd
+
+  Section /o "Galician" SecLang_glg
+    AddSize 5392
+    !insertmacro Download_Lang_Data glg
+  SectionEnd
+
+  Section /o "Gujarati" SecLang_guj
+    AddSize 10380
+    !insertmacro Download_Lang_Data guj
+  SectionEnd
+
+  Section /o "Haitian" SecLang_hat
+    AddSize 1320
+    !insertmacro Download_Lang_Data hat
+  SectionEnd
+
+  Section /o "Hebrew" SecLang_heb
+    AddSize 4240
+    !insertmacro Download_Lang_Data heb
+  SectionEnd
+
+  Section /o "Hindi" SecLang_hin
+    AddSize 22212
+    !insertmacro Download_Lang_Data_File hin.cube.bigrams
+    !insertmacro Download_Lang_Data_File hin.cube.fold
+    !insertmacro Download_Lang_Data_File hin.cube.lm
+    !insertmacro Download_Lang_Data_File hin.cube.nn
+    !insertmacro Download_Lang_Data_File hin.cube.params
+    !insertmacro Download_Lang_Data_File hin.cube.word-freq
+    !insertmacro Download_Lang_Data_File hin.tesseract_cube.nn
+    !insertmacro Download_Lang_Data hin
+  SectionEnd
+
+  Section /o "Hungarian" SecLang_hun
+    AddSize 11932
+    !insertmacro Download_Lang_Data hun
+  SectionEnd
+
+  Section /o "Inuktitut" SecLang_iku
+    AddSize 972
+    !insertmacro Download_Lang_Data iku
+  SectionEnd
+
+  Section /o "Icelandic" SecLang_isl
+    AddSize 5956
+    !insertmacro Download_Lang_Data isl
+  SectionEnd
+
+  Section /o "Indonesian" SecLang_ind
+    AddSize 6352
+    !insertmacro Download_Lang_Data ind
+  SectionEnd
+
+  Section /o "Italian" SecLang_ita
+    AddSize 31980
+    !insertmacro Download_Lang_Data_File ita.tesseract_cube.nn
+    !insertmacro Download_Lang_Data_with_Cube_bigrams ita
+  SectionEnd
+
+  Section /o "Italian (Old)" SecLang_ita_old
+    AddSize 13732
+    !insertmacro Download_Lang_Data ita_old
+  SectionEnd
+
+  Section /o "Javanese" SecLang_jav
+    AddSize 4304
+    !insertmacro Download_Lang_Data jav
+  SectionEnd
+
+  Section /o "Japanese" SecLang_jpn
+    AddSize 32304
+    !insertmacro Download_Lang_Data jpn
+  SectionEnd
+
+  Section /o "Kannada" SecLang_kan
+    AddSize 34828
+    !insertmacro Download_Lang_Data kan
+  SectionEnd
+
+  Section /o "Georgian" SecLang_kat
+    AddSize 6076
+    !insertmacro Download_Lang_Data kat
+  SectionEnd
+
+  Section /o "Georgian (Old)" SecLang_kat_old
+    AddSize 644
+    !insertmacro Download_Lang_Data kat_old
+  SectionEnd
+
+  Section /o "Kazakh" SecLang_kaz
+    AddSize 4424
+    !insertmacro Download_Lang_Data kaz
+  SectionEnd
+
+  Section /o "Central Khmer" SecLang_khm
+    AddSize 47712
+    !insertmacro Download_Lang_Data khm
+  SectionEnd
+
+  Section /o "Kirghiz" SecLang_kir
+    AddSize 5376
+    !insertmacro Download_Lang_Data kir
+  SectionEnd
+
+  Section /o "Korean" SecLang_kor
+    AddSize 13004
+    !insertmacro Download_Lang_Data kor
+  SectionEnd
+
+  Section /o "Kurdish" SecLang_kur
+    AddSize 1976
+    !insertmacro Download_Lang_Data kur
+  SectionEnd
+
+  Section /o "Lao" SecLang_lao
+    AddSize 20628
+    !insertmacro Download_Lang_Data lao
+  SectionEnd
+
+  Section /o "Latin" SecLang_lat
+    AddSize 5888
+    !insertmacro Download_Lang_Data lat
+  SectionEnd
+
+  Section /o "Latvian" SecLang_lav
+    AddSize 7620
+    !insertmacro Download_Lang_Data lav
+  SectionEnd
+
+  Section /o "Lithuanian" SecLang_lit
+    AddSize 8708
+    !insertmacro Download_Lang_Data lit
+  SectionEnd
+
+  Section /o "Macedonian" SecLang_mkd
+    AddSize 3748
+    !insertmacro Download_Lang_Data mkd
+  SectionEnd
+
+  Section /o "Malay" SecLang_msa
+    AddSize 6344
+    !insertmacro Download_Lang_Data msa
+  SectionEnd
+
+  Section /o "Malayalam" SecLang_mal
+    AddSize 8584
+    !insertmacro Download_Lang_Data mal
+  SectionEnd
+
+  Section /o "Maltese" SecLang_mlt
+    AddSize 5000
+    !insertmacro Download_Lang_Data mlt
+  SectionEnd
+
+  Section /o "Marathi" SecLang_mar
+    AddSize 13908
+    !insertmacro Download_Lang_Data mar
+  SectionEnd
+
+  Section /o "Burmese" SecLang_mya
+    AddSize 68140
+    !insertmacro Download_Lang_Data mya
+  SectionEnd
+
+  Section /o "Nepali" SecLang_nep
+    AddSize 15496
+    !insertmacro Download_Lang_Data nep
+  SectionEnd
+
+  Section /o "Norwegian" SecLang_nor
+    AddSize 8072
+    !insertmacro Download_Lang_Data nor
+  SectionEnd
+
+  Section /o "Oriya" SecLang_ori
+    AddSize 7716
+    !insertmacro Download_Lang_Data ori
+  SectionEnd
+
+  Section /o "Panjabi / Punjabi" SecLang_pan
+    AddSize 9976
+    !insertmacro Download_Lang_Data pan
+  SectionEnd
+
+  Section /o "Polish" SecLang_pol
+    AddSize 13592
+    !insertmacro Download_Lang_Data pol
+  SectionEnd
+
+  Section /o "Portuguese" SecLang_por
+    AddSize 12612
+    !insertmacro Download_Lang_Data por
+  SectionEnd
+
+  Section /o "Pushto / Pashto" SecLang_pus
+    AddSize 2436
+    !insertmacro Download_Lang_Data pus
+  SectionEnd
+
+  Section /o "Romanian" SecLang_ron
+    AddSize 7772
+    !insertmacro Download_Lang_Data ron
+  SectionEnd
+
+  Section /o "Russian" SecLang_rus
+    AddSize 38472
+    !insertmacro Download_Lang_Data_with_Cube rus
+  SectionEnd
+
+  Section /o "Sanskrit" SecLang_san
+    AddSize 22220
+    !insertmacro Download_Lang_Data san
+  SectionEnd
+
+  Section /o "Sinhala / Sinhalese" SecLang_sin
+    AddSize 6636
+    !insertmacro Download_Lang_Data sin
+  SectionEnd
+
+  Section /o "Slovak" SecLang_slk
+    AddSize 8916
+    !insertmacro Download_Lang_Data slk
+  SectionEnd
+
+  Section /o "Slovak (Fraktur)" SecLang_slk_frak
+    AddSize 828
+    !insertmacro Download_Lang_Data slk_frak
+  SectionEnd
+
+  Section /o "Slovenian" SecLang_slv
+    AddSize 6668
+    !insertmacro Download_Lang_Data slv
+  SectionEnd
+
+  Section /o "Spanish" SecLang_spa
+    AddSize 38276
+    !insertmacro Download_Lang_Data_with_Cube_bigrams spa
+  SectionEnd
+
+  Section /o "Spanish (Old)" SecLang_spa_old
+    AddSize 16348
+    !insertmacro Download_Lang_Data spa_old
+  SectionEnd
+
+  Section /o "Serbian" SecLang_srp
+    AddSize 4504
+    !insertmacro Download_Lang_Data srp
+  SectionEnd
+
+  Section /o "Serbian (Latin)" SecLang_srp_latn
+    AddSize 5952
+    !insertmacro Download_Lang_Data srp_latn
+  SectionEnd
+
+  Section /o "Swahili" SecLang_swa
+    AddSize 3772
+    !insertmacro Download_Lang_Data swa
+  SectionEnd
+
+  Section /o "Swedish" SecLang_swe
+    AddSize 9240
+    !insertmacro Download_Lang_Data swe
+  SectionEnd
+
+!ifdef OLD
+  Section /o "Swedish (Fraktur)" SecLang_swe_frak
+    AddSize 999
+    !insertmacro Download_Lang_Data swe-frak
+  SectionEnd
+!endif ; OLD
+
+  Section /o "Syriac" SecLang_syr
+    AddSize 2672
+    !insertmacro Download_Lang_Data syr
+  SectionEnd
+
+  Section /o "Tagalog" SecLang_tgl
+    AddSize 4020
+    !insertmacro Download_Lang_Data tgl
+  SectionEnd
+
+  Section /o "Tajik" SecLang_tgk
+    AddSize 1096
+    !insertmacro Download_Lang_Data tgk
+  SectionEnd
+
+  Section /o "Tamil" SecLang_tam
+    AddSize 5000
+    !insertmacro Download_Lang_Data tam
+  SectionEnd
+
+  Section /o "Telugu" SecLang_tel
+    AddSize 38404
+    !insertmacro Download_Lang_Data tel
+  SectionEnd
+
+  Section /o "Thai" SecLang_tha
+    AddSize 13248
+    !insertmacro Download_Lang_Data tha
+  SectionEnd
+
+  Section /o "Tigrinya" SecLang_tir
+    AddSize 1764
+    !insertmacro Download_Lang_Data tir
+  SectionEnd
+
+  Section /o "Turkish" SecLang_tur
+    AddSize 13744
+    !insertmacro Download_Lang_Data tur
+  SectionEnd
+
+  Section /o "Uighur" SecLang_uig
+    AddSize 1972
+    !insertmacro Download_Lang_Data uig
+  SectionEnd
+
+  Section /o "Ukrainian" SecLang_ukr
+    AddSize 7856
+    !insertmacro Download_Lang_Data ukr
+  SectionEnd
+
+  Section /o "Urdu" SecLang_urd
+    AddSize 4716
+    !insertmacro Download_Lang_Data urd
+  SectionEnd
+
+  Section /o "Uzbek" SecLang_uzb
+    AddSize 4188
+    !insertmacro Download_Lang_Data uzb
+  SectionEnd
+
+  Section /o "Uzbek (Cyrilic)" SecLang_uzb_cyrl
+    AddSize 3264
+    !insertmacro Download_Lang_Data uzb_cyrl
+  SectionEnd
+
+  Section /o "Vietnamese" SecLang_vie
+    AddSize 5956
+    !insertmacro Download_Lang_Data vie
+  SectionEnd
+
+  Section /o "Yiddish" SecLang_yid
+    AddSize 4140
+    !insertmacro Download_Lang_Data yid
+  SectionEnd
 SectionGroupEnd
 
 ;--------------------------------
@@ -690,6 +1048,14 @@ SectionGroupEnd
   LangString DESC_SEC0001 ${LANG_ENGLISH} "Installation files."
   ;LangString DESC_SecHelp ${LANG_ENGLISH} "Help information."
   LangString DESC_SecCS    ${LANG_ENGLISH} "Add shortcuts to Start menu."
+
+  LangString DESC_SEC0001 ${LANG_FRENCH} "Fichier d'installation."
+  ;LangString DESC_SecHelp ${LANG_FRENCH} "Aide."
+  LangString DESC_SecCS   ${LANG_FRENCH} "Ajouter des raccourcis vers le menu démarrer."
+
+  LangString DESC_SEC0001 ${LANG_GERMAN} "Dateien für die Installation."
+ ;LangString DESC_SecHelp ${LANG_GERMAN} "Hilfe."
+  LangString DESC_SecCS   ${LANG_GERMAN} "Einträge im Startmenü hinzufügen."
 
   LangString DESC_SEC0001 ${LANG_ITALIAN} "File di installazione."
   ;LangString DESC_SecHelp ${LANG_ITALIAN} "Guida di informazioni."
@@ -756,6 +1122,7 @@ FunctionEnd
 
 Function .onInit
   Call PreventMultipleInstances
+  !insertmacro MUI_LANGDLL_DISPLAY
   ;RequestExecutionLevel admin
   !insertmacro MULTIUSER_INIT
 
@@ -765,10 +1132,11 @@ Function .onInit
   StrCmp $R0 "" test1 test2
   test1:
     ReadRegStr $R0 HKLM "${REGKEY}" "CurrentVersion"
-    StrCpy $OLD_KEY HKLM
+    StrCpy $OLD_KEY "$R0"
     StrCmp $R0 "" SkipUnInstall
   test2:
-    MessageBox MB_YESNO|MB_ICONEXCLAMATION "Tesseract-ocr version $R0 is installed (in $OLD_KEY)! Do you want to uninstall it first?$\nUninstall will delete all files in '$INSTDIR'!" \
+    MessageBox MB_YESNO|MB_ICONEXCLAMATION \
+      "Tesseract-ocr version $R0 is installed (in $OLD_KEY)! Do you want to uninstall it first?$\nUninstall will delete all files in '$INSTDIR'!" \
        /SD IDYES IDNO SkipUnInstall IDYES UnInstall
   UnInstall:
     StrCmp $OLD_KEY "HKLM" UnInst_hklm
@@ -781,23 +1149,18 @@ Function .onInit
     try_uninstall:
       ClearErrors
       ExecWait '$R1 _?=$INSTDIR'$0
-      StrCmp $0 0 0 +3   ; Check if unstaller finished ok. If yes, than try to remove it from installer
+      ; Check if unstaller finished ok. If yes, then try to remove it from installer.
+      StrCmp $0 0 0 +3
         !insertmacro REMOVE_REGKEY ${OLD_KEY}
         Goto SkipUnInstall
       messagebox mb_ok "Uninstaller failed:\n$0\n\nYou need to remove program manually."
   SkipUnInstall:
-  MessageBox MB_YESNO|MB_ICONQUESTION "Do you want to install ${PRODUCT_NAME} ${VERSION}?" \
-    /SD IDYES IDNO no IDYES yes
-  no:
-    SetSilent silent
-    Goto done
-  yes:
     ;InitPluginsDir
     ;File /oname=$PLUGINSDIR\splash.bmp "${NSISDIR}\Contrib\Graphics\Header\nsis.bmp"
     ;File /oname=$PLUGINSDIR\splash.bmp "new.bmp"
     ;advsplash::show 1000 600 400 -1 $PLUGINSDIR\splash
     ;Pop $0          ; $0 has '1' if the user closed the splash screen early,
-                    ; '0' if everything closed normal, and '-1' if some error occured.
+                    ; '0' if everything closed normal, and '-1' if some error occurred.
     ;IfFileExists $INSTDIR\loadmain.exe PathGood
   done:
     ; Make selection based on System language ID
@@ -865,6 +1228,8 @@ Function .onInit
             Goto lang_end
     Arabic: !insertmacro SelectSection ${SecLang_ara}
             Goto lang_end
+    ;Assamese: !insertmacro SelectSection ${SecLang_asm}
+    ;        Goto lang_end
     Azerbaijani: !insertmacro SelectSection ${SecLang_aze}
             Goto lang_end
     Basque: !insertmacro SelectSection ${SecLang_eus}
@@ -906,7 +1271,7 @@ Function .onInit
     French: !insertmacro SelectSection ${SecLang_fra}
             Goto lang_end
     Hebrew: !insertmacro SelectSection ${SecLang_heb}
-            !insertmacro SelectSection ${SecLang_heb_com}
+            ;!insertmacro SelectSection ${SecLang_heb_com}
             Goto lang_end
     Hungarian: !insertmacro SelectSection ${SecLang_hin}
             Goto lang_end
@@ -960,7 +1325,9 @@ Function .onInit
     Swahili: !insertmacro SelectSection ${SecLang_swa}
             Goto lang_end
     Swedish: !insertmacro SelectSection ${SecLang_swe}
+!ifdef OLD
             !insertmacro SelectSection ${SecLang_swe_frak}
+!endif
             Goto lang_end
     Tamil: !insertmacro SelectSection ${SecLang_tam}
             Goto lang_end
@@ -978,9 +1345,10 @@ Function .onInit
 FunctionEnd
 
 Function un.onInit
-   !insertmacro MULTIUSER_UNINIT
-   ;!insertmacro SELECT_UNSECTION Main ${UNSEC0000}
-   ;!insertmacro MUI_UNGETLANGUAGE
+  !insertmacro MUI_LANGDLL_DISPLAY
+  !insertmacro MULTIUSER_UNINIT
+  ;!insertmacro SELECT_UNSECTION Main ${UNSEC0000}
+  ;!insertmacro MUI_UNGETLANGUAGE
 FunctionEnd
 
 Function .onInstFailed
@@ -988,12 +1356,13 @@ Function .onInstFailed
 FunctionEnd
 
 Function ShowReadme
-  Exec "explorer.exe $INSTDIR\doc\README"
+  Exec "iexplore.exe $INSTDIR\doc\README"
   ;BringToFront
 FunctionEnd
 
 ; Prevent running multiple instances of the installer
 Function PreventMultipleInstances
+  ; TODO: Does not work.
   Push $R0
   System::Call 'kernel32::CreateMutexA(i 0, i 0, t ${PRODUCT_NAME}) ?e'
   Pop $R0
