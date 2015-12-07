@@ -72,8 +72,8 @@ doc-clean:
 	rm -rf $(top_srcdir)/doc/html/*
 
 if MINGW
-winsetup:
-	@cd "$(top_builddir)/nsis" && $(MAKE) winsetup
+winsetup: ScrollView.jar training
+	@$(MAKE) -C "$(top_builddir)/nsis" winsetup
 endif
 
 pkgconfigdir = $(libdir)/pkgconfig

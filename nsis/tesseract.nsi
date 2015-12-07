@@ -21,6 +21,9 @@ SetCompressor /FINAL /SOLID lzma
 SetCompressorDictSize 32
 
 ; Settings which normally should be passed as command line arguments.
+;define CROSSBUILD
+;define SHARED
+;define W64
 !ifndef SRCDIR
 !define SRCDIR .
 !endif
@@ -36,21 +39,15 @@ SetCompressorDictSize 32
 !define FILE_URL "http://tesseract-ocr.googlecode.com/files/"
 !endif
 !define GITHUB_RAW_FILE_URL \
-  "https://raw.githubusercontent.com/tesseract-ocr/tessdata/master"
+  "https://raw.githubusercontent.com/tesseract-ocr/tessdata/3.04.00"
 
 !ifdef CROSSBUILD
 !addincludedir ${SRCDIR}\nsis\include
 !addplugindir ${SRCDIR}\nsis\plugins
-!ifdef SHARED
-!define APIDIR "../api/.libs"
-!else
-!define APIDIR "../api"
 !endif
-!define TRAININGDIR "../training"
-!else
-!define APIDIR "LIB_Release"
-!define TRAININGDIR "LIB_Release"
-!endif
+
+!define PREFIX "../usr/i686-w64-mingw32"
+!define TRAININGDIR "${PREFIX}/bin"
 
 # General Definitions
 Name "${PRODUCT_NAME}"
@@ -99,13 +96,17 @@ BrandingText /TRIMCENTER "(c) 2010-2015 ${PRODUCT_NAME}"
 !include MultiUser.nsh
 !include Sections.nsh
 !include MUI2.nsh
+!ifdef REGISTRY_SETTINGS
 !include EnvVarUpdate.nsh
+!endif ; REGISTRY_SETTINGS
 !include LogicLib.nsh
 !include winmessages.nsh # include for some of the windows messages defines
 
 # Variables
 Var StartMenuGroup
+!ifdef REGISTRY_SETTINGS
 Var PathKey
+!endif ; REGISTRY_SETTINGS
 ; Define user variables
 Var OLD_KEY
 
@@ -135,14 +136,18 @@ Var OLD_KEY
 !insertmacro MUI_LANGUAGE "SpanishInternational"
 
 # Installer attributes
-ShowInstDetails show
+ShowInstDetails hide
 InstProgressFlags smooth colored
 XPStyle on
 SpaceTexts
 CRCCheck on
 InstProgressFlags smooth colored
 CRCCheck On  # Do a CRC check before installing
+!ifdef W64
+InstallDir "$PROGRAMFILES64\Tesseract-OCR"
+!else
 InstallDir "$PROGRAMFILES\Tesseract-OCR"
+!endif
 # Name of program and file
 !ifdef VERSION
 OutFile tesseract-ocr-setup-${VERSION}.exe
@@ -150,6 +155,7 @@ OutFile tesseract-ocr-setup-${VERSION}.exe
 OutFile tesseract-ocr-setup.exe
 !endif
 
+!ifdef REGISTRY_SETTINGS
 !macro AddToPath
   # TODO(zdenop): Check if $INSTDIR is in path. If yes, do not append it.
   # append bin path to user PATH environment variable
@@ -188,6 +194,7 @@ OutFile tesseract-ocr-setup.exe
   # make sure windows knows about the change
   SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 !macroend
+!endif ; REGISTRY_SETTINGS
 
 !macro Download_Lang_Data Lang
   ; Download traineddata file.
@@ -339,44 +346,21 @@ Section -Main SEC0000
   SectionIn RO
   SetOutPath "$INSTDIR"
   # files included in distribution
-  File ${APIDIR}\tesseract.exe
-!ifdef SHARED
-  File ${APIDIR}\libtesseract-3.dll
-!endif
+  File ${PREFIX}/bin/tesseract.exe
+  File ${PREFIX}/bin/libtesseract-*.dll
 !ifdef CROSSBUILD
   File ${SRCDIR}\dll\i686-w64-mingw32\*.dll
 !endif
   File ${SRCDIR}\nsis\tar.exe
-  CreateDirectory "$INSTDIR\java"
-  SetOutPath "$INSTDIR\java"
-  File ..\java\ScrollView.jar
   CreateDirectory "$INSTDIR\tessdata"
+  SetOutPath "$INSTDIR\tessdata"
+  File ${PREFIX}/share/tessdata/pdf.ttf
   CreateDirectory "$INSTDIR\tessdata\configs"
   SetOutPath "$INSTDIR\tessdata\configs"
-  File ${SRCDIR}\tessdata\configs\ambigs.train
-  File ${SRCDIR}\tessdata\configs\api_config
-  File ${SRCDIR}\tessdata\configs\bigram
-  File ${SRCDIR}\tessdata\configs\box.train
-  File ${SRCDIR}\tessdata\configs\box.train.stderr
-  File ${SRCDIR}\tessdata\configs\digits
-  File ${SRCDIR}\tessdata\configs\hocr
-  File ${SRCDIR}\tessdata\configs\inter
-  File ${SRCDIR}\tessdata\configs\kannada
-  File ${SRCDIR}\tessdata\configs\linebox
-  File ${SRCDIR}\tessdata\configs\logfile
-  File ${SRCDIR}\tessdata\configs\makebox
-  File ${SRCDIR}\tessdata\configs\quiet
-  File ${SRCDIR}\tessdata\configs\rebox
-  File ${SRCDIR}\tessdata\configs\strokewidth
-  File ${SRCDIR}\tessdata\configs\unlv
+  File ${PREFIX}/share/tessdata/configs/*
   CreateDirectory "$INSTDIR\tessdata\tessconfigs"
   SetOutPath "$INSTDIR\tessdata\tessconfigs"
-  File ${SRCDIR}\tessdata\tessconfigs\batch
-  File ${SRCDIR}\tessdata\tessconfigs\batch.nochop
-  File ${SRCDIR}\tessdata\tessconfigs\matdemo
-  File ${SRCDIR}\tessdata\tessconfigs\msdemo
-  File ${SRCDIR}\tessdata\tessconfigs\nobatch
-  File ${SRCDIR}\tessdata\tessconfigs\segdemo
+  File ${PREFIX}/share/tessdata/tessconfigs/*
   CreateDirectory "$INSTDIR\doc"
   SetOutPath "$INSTDIR\doc"
   File ${SRCDIR}\AUTHORS
@@ -384,43 +368,47 @@ Section -Main SEC0000
   File ${SRCDIR}\testing\eurotext.tif
   File ${SRCDIR}\testing\phototest.tif
   File ${SRCDIR}\testing\README
-  File ${SRCDIR}\ReleaseNotes
+##  File ${SRCDIR}\ReleaseNotes
+SectionEnd
+
+Section "ScrollView" SecScrollView
+  SectionIn 1
+  CreateDirectory "$INSTDIR\java"
+  SetOutPath "$INSTDIR\java"
+  File ..\java\ScrollView.jar
+  File ..\java\piccolo2d-core-3.0.jar
+  File ..\java\piccolo2d-extras-3.0.jar
 SectionEnd
 
 Section "Training Tools" SecTr
   SectionIn 1
   SetOutPath "$INSTDIR"
-  File ${TRAININGDIR}\ambiguous_words.exe
-  File ${TRAININGDIR}\classifier_tester.exe
-  File ${TRAININGDIR}\cntraining.exe
-  File ${TRAININGDIR}\combine_tessdata.exe
-  File ${TRAININGDIR}\dawg2wordlist.exe
-  File ${TRAININGDIR}\mftraining.exe
-  File ${TRAININGDIR}\unicharset_extractor.exe
-  File ${TRAININGDIR}\wordlist2dawg.exe
-  File ${TRAININGDIR}\shapeclustering.exe
+  File ${TRAININGDIR}\*.exe
 SectionEnd
 
+!define UNINST_EXE "$INSTDIR\tesseract-uninstall.exe"
+!define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
+
 Section -post SEC0001
-  ;Store installation folder - we use always HKLM!
+  ;Store installation folder - we always use HKLM!
   WriteRegStr HKLM "${REGKEY}" "Path" "$INSTDIR"
   WriteRegStr HKLM "${REGKEY}" "Mode" $MultiUser.InstallMode
   WriteRegStr HKLM "${REGKEY}" "InstallDir" "$INSTDIR"
   WriteRegStr HKLM "${REGKEY}" "CurrentVersion" "${VERSION}"
-  WriteRegStr HKLM "${REGKEY}" "Uninstaller" "$INSTDIR\uninstall.exe"
+  WriteRegStr HKLM "${REGKEY}" "Uninstaller" "${UNINST_EXE}"
   ;WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "Tesseract-OCR" "$INSTDIR\tesseract.exe"
   ; Register to Add/Remove program in control panel
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "DisplayName" "${PRODUCT_NAME} - open source OCR engine"
-  WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "DisplayVersion" "${VERSION}"
-  WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "Publisher" "${PRODUCT_PUBLISHER}"
-  WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
-  WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "DisplayIcon" "$INSTDIR\uninstall.exe"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "UninstallString" "$INSTDIR\uninstall.exe"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
-  WriteRegDWORD HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "NoModify" 1
-  WriteRegDWORD HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "NoRepair" 1
+  WriteRegStr HKLM "${UNINST_KEY}" "DisplayName" "${PRODUCT_NAME} - open source OCR engine"
+  WriteRegStr HKLM "${UNINST_KEY}" "DisplayVersion" "${VERSION}"
+  WriteRegStr HKLM "${UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
+  WriteRegStr HKLM "${UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
+  WriteRegStr HKLM "${UNINST_KEY}" "DisplayIcon" "${UNINST_EXE}"
+  WriteRegStr HKLM "${UNINST_KEY}" "UninstallString" "${UNINST_EXE}"
+  WriteRegStr HKLM "${UNINST_KEY}" "QuietUninstallString" '"${UNINST_EXE}" /S'
+  WriteRegDWORD HKLM "${UNINST_KEY}" "NoModify" 1
+  WriteRegDWORD HKLM "${UNINST_KEY}" "NoRepair" 1
   ;Create uninstaller
-  WriteUninstaller "$INSTDIR\Uninstall.exe"
+  WriteUninstaller "${UNINST_EXE}"
   ;ExecShell "open" "https://github.com/tesseract-ocr/tesseract"
   ;ExecShell "open" '"$INSTDIR"'
   ;BringToFront
@@ -433,11 +421,12 @@ Section "Shortcuts creation" SecCS
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Homepage.lnk" "${PRODUCT_WEB_SITE}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\ReadMe.lnk" "${PRODUCT_WEB_SITE}/wiki/ReadMe"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\FAQ.lnk" "${PRODUCT_WEB_SITE}/wiki/FAQ"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "${UNINST_EXE}" "" "${UNINST_EXE}" 0
   ;CreateShortCut "$DESKTOP\Tesseract-OCR.lnk" "$INSTDIR\tesseract.exe" "" "$INSTDIR\tesseract.exe" 0
   ;CreateShortCut "$QUICKLAUNCH\.lnk" "$INSTDIR\tesseract.exe" "" "$INSTDIR\tesseract.exe" 0
 SectionEnd
 
+!ifdef REGISTRY_SETTINGS ; disabled because of bad behaviour with long PATH
 SectionGroup "Registry settings" SecRS
     Section /o "Add to Path" SecRS_path
         !insertmacro AddToPath
@@ -446,6 +435,7 @@ SectionGroup "Registry settings" SecRS
         !insertmacro SetTESSDATA
     SectionEnd
 SectionGroupEnd
+!endif ; REGISTRY_SETTINGS
 
 !ifdef OLD
 SectionGroup "Tesseract development files" SecGrp_dev
@@ -1090,14 +1080,16 @@ Section -un.Main UNSEC0000
   DetailPrint "Removing registry info"
   DeleteRegKey HKLM "Software\Tesseract-OCR"
   SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+!ifdef REGISTRY_SETTINGS
   ${un.EnvVarUpdate} $0 "PATH" "R" HKLM $INSTDIR
   SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
   DeleteRegValue HKLM "Environment" "TESSDATA_PREFIX"
   SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+!endif ; REGISTRY_SETTINGS
 
   # remove the Add/Remove information
-  DeleteRegKey HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
-  Delete "$INSTDIR\Uninstall.exe"
+  DeleteRegKey HKLM "${UNINST_KEY}"
+  Delete "${UNINST_EXE}"
   DeleteRegValue HKLM "${REGKEY}" Path
   DeleteRegKey /IfEmpty HKLM "${REGKEY}\Components"
   DeleteRegKey /IfEmpty HKLM "${REGKEY}"
@@ -1129,23 +1121,23 @@ Function .onInit
   ; is tesseract already installed?
   ReadRegStr $R0 HKCU "${REGKEY}" "CurrentVersion"
   StrCpy $OLD_KEY HKCU
-  StrCmp $R0 "" test1 test2
-  test1:
+  StrCmp $R0 "" TestHKLM AskUninstall
+  TestHKLM:
     ReadRegStr $R0 HKLM "${REGKEY}" "CurrentVersion"
-    StrCpy $OLD_KEY "$R0"
+    StrCpy $OLD_KEY HKLM
     StrCmp $R0 "" SkipUnInstall
-  test2:
+  AskUninstall:
     MessageBox MB_YESNO|MB_ICONEXCLAMATION \
       "Tesseract-ocr version $R0 is installed (in $OLD_KEY)! Do you want to uninstall it first?$\nUninstall will delete all files in '$INSTDIR'!" \
        /SD IDYES IDNO SkipUnInstall IDYES UnInstall
   UnInstall:
     StrCmp $OLD_KEY "HKLM" UnInst_hklm
-       DetailPrint "CurrentUser:"
-       readRegStr $R1 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "UninstallString"
+       DetailPrint "Uninstall: current user"
+       readRegStr $R1 HKCU "${UNINST_KEY}" "UninstallString"
        Goto try_uninstall
     UnInst_hklm:
-       DetailPrint "UnInst_hklm"
-       readRegStr $R1 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" "UninstallString"
+       DetailPrint "UnInstall: all users"
+       readRegStr $R1 HKLM "${UNINST_KEY}" "UninstallString"
     try_uninstall:
       ClearErrors
       ExecWait '$R1 _?=$INSTDIR'$0
@@ -1162,7 +1154,7 @@ Function .onInit
     ;Pop $0          ; $0 has '1' if the user closed the splash screen early,
                     ; '0' if everything closed normal, and '-1' if some error occurred.
     ;IfFileExists $INSTDIR\loadmain.exe PathGood
-  done:
+  ;done:
     ; Make selection based on System language ID
     System::Call 'kernel32::GetSystemDefaultLangID() i .r0'
     ;http://msdn.microsoft.com/en-us/library/dd318693%28v=VS.85%29.aspx
