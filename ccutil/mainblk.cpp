@@ -61,26 +61,27 @@ void CCUtil::main_setup(const char *argv0, const char *basename) {
   } else if (tessdata_prefix) {
     /* Use tessdata prefix from the environment. */
     datadir = tessdata_prefix;
-#if defined(_WIN32)
-  } else if (datadir == NULL || access(datadir.string(), 0) != 0) {
-    /* Look for tessdata in directory of executable. */
-    static char dir[128];
-    static char exe[128];
-    DWORD length = GetModuleFileName(NULL, exe, sizeof(exe));
-    if (length > 0 && length < sizeof(exe)) {
-      _splitpath(exe, NULL, dir, NULL, NULL);
-      datadir = dir;
-    }
-#endif /* _WIN32 */
-#if defined(TESSDATA_PREFIX)
   } else {
-/* Use tessdata prefix which was compiled in. */
+#if defined(TESSDATA_PREFIX)
+    /* Use tessdata prefix which was compiled in. */
 #define _STR(a) #a
 #define _XSTR(a) _STR(a)
     datadir = _XSTR(TESSDATA_PREFIX);
 #undef _XSTR
 #undef _STR
 #endif
+#if defined(_WIN32)
+    if (datadir == NULL || access(datadir.string(), 0) != 0) {
+        /* Look for tessdata in directory of executable. */
+        static char dir[128];
+        static char exe[128];
+        DWORD length = GetModuleFileName(NULL, exe, sizeof(exe));
+        if (length > 0 && length < sizeof(exe)) {
+          _splitpath(exe, NULL, dir, NULL, NULL);
+          datadir = dir;
+        }
+    }
+#endif /* _WIN32 */
   }
 
   // datadir may still be empty:
