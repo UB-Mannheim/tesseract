@@ -82,7 +82,7 @@ typedef enum {
 
 void cprintf (                   //Trace printf
 const char *format, ...          //special message
-);
+) __attribute__((format(gnu_printf, 1, 2)));
 ScrollView *c_create_window(                   /*create a window */
                       const char *name,  /*name/title of window */
                       inT16 xpos,        /*coords of window */

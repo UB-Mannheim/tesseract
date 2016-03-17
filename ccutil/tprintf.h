@@ -31,6 +31,6 @@ extern DLLSYM BOOL_VAR_H(debug_window_on, TRUE,
 #define tprintf(...) tprintf_internal(__VA_ARGS__)
 
 extern TESS_API void tprintf_internal(  // Trace printf
-    const char *format, ...);           // Message
+    const char *format, ...) __attribute__((format(gnu_printf, 1, 2)));           // Message
 
 #endif  // define TESSERACT_CCUTIL_TPRINTF_H
