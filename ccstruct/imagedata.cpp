@@ -24,17 +24,17 @@
 
 #include "imagedata.h"
 
+#if defined(__MINGW32__)
+#include <unistd.h>
+#else
+#include <thread>
+#endif
+
 #include "allheaders.h"
 #include "boxread.h"
 #include "callcpp.h"
 #include "helpers.h"
 #include "tprintf.h"
-
-#if defined(__MINGW32__)
-# include <unistd.h>
-#elif __cplusplus > 199711L   // in C++11
-# include <thread>
-#endif
 
 // Number of documents to read ahead while training. Doesn't need to be very
 // large.
@@ -455,12 +455,10 @@ const ImageData* DocumentData::GetPage(int index) {
     if (needs_loading) LoadPageInBackground(index);
     // We can't directly load the page, or the background load will delete it
     // while the caller is using it, so give it a chance to work.
-#if __cplusplus > 199711L && !defined(__MINGW32__)
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-#elif _WIN32  // MSVS
-    Sleep(1000);
-#else
+#if defined(__MINGW32__)
     sleep(1);
+#else
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 #endif
   }
   return page;
@@ -495,8 +493,8 @@ inT64 DocumentData::UnCache() {
   pages_offset_ = -1;
   set_total_pages(-1);
   set_memory_used(0);
-  tprintf("Unloaded document %s, saving %d memory\n", document_name_.string(),
-          memory_saved);
+  tprintf("Unloaded document %s, saving %" PRId64 " memory\n",
+          document_name_.string(), memory_saved);
   return memory_saved;
 }
 
