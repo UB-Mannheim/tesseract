@@ -40,7 +40,7 @@ SetCompressorDictSize 32
 !define PRODUCT_WEB_SITE "https://github.com/tesseract-ocr/tesseract"
 !endif
 !define GITHUB_RAW_FILE_URL \
-  "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/master"
+  "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main"
 
 !ifdef CROSSBUILD
 !addincludedir ${SRCDIR}\nsis\include
@@ -471,7 +471,7 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
   SectionEnd
 
   ; The language names are documented here:
-  ; https://github.com/tesseract-ocr/tesseract/blob/master/doc/tesseract.1.asc#languages
+  ; https://github.com/tesseract-ocr/tesseract/blob/main/doc/tesseract.1.asc#languages
 
   Section /o "Afrikaans" SecLang_afr
     AddSize 2530
