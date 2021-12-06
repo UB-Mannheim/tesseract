@@ -22,6 +22,8 @@
 SetCompressor /FINAL /SOLID lzma
 SetCompressorDictSize 32
 
+Unicode true
+
 ; Settings which normally should be passed as command line arguments.
 ;define CROSSBUILD
 ;define SHARED
