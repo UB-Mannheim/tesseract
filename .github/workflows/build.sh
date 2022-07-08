@@ -45,7 +45,7 @@ for dll in $DLLS; do
   ln -sf /usr/lib/gcc/$HOST/*-posix/$dll dll/$HOST
 done
 
-TAG=5.0.0-alpha.$(date +%Y%m%d)
+TAG=$(cat VERSION).$(date +%Y%m%d)
 
 git config --global user.email "sw@weilnetz.de"
 git config --global user.name "Stefan Weil"
