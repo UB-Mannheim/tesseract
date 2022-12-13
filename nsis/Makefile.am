@@ -9,6 +9,6 @@ gitrev="$(shell git --git-dir=${abs_top_srcdir}/.git --work-tree=${abs_top_srcdi
 .PHONY: winsetup
 
 winsetup:
-	makensis -DCROSSBUILD -DSHARED -DSRCDIR=$(top_srcdir) -DVERSION=${gitrev} $(shell test "$(host_cpu)" = x86_64 && echo "-DW64") -NOCD $(top_srcdir)/nsis/tesseract.nsi
+	makensis -DCROSSBUILD -DSHARED -DSIGNCODE=$(SIGNCODE) -DSRCDIR=$(top_srcdir) -DVERSION=${gitrev} $(shell test "$(host_cpu)" = x86_64 && echo "-DW64") -NOCD $(top_srcdir)/nsis/tesseract.nsi
 
 endif

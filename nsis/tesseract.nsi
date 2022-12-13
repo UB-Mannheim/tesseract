@@ -64,6 +64,11 @@ OutFile ${SETUP}-${VERSION}.exe
 OutFile ${SETUP}.exe
 !endif
 
+!ifdef SIGNCODE
+!finalize "${SIGNCODE} %1"
+!uninstfinalize "${SIGNCODE} %1"
+!endif
+
 !define PREFIX "../usr/${ARCH}-w64-mingw32"
 !define TRAININGDIR "${PREFIX}/bin"
 
