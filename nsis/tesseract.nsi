@@ -1,6 +1,6 @@
 ; (C) Copyright 2010, Sergey Bronnikov
 ; (C) Copyright 2010-2012, Zdenko Podobný
-; (C) Copyright 2015-2019 Stefan Weil
+; (C) Copyright 2015-2023 Stefan Weil
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
 ; you may not use this file except in compliance with the License.
@@ -66,7 +66,9 @@ OutFile ${OUTFILE}
 !uninstfinalize "${SIGNCODE} %1"
 !endif
 
-!define PREFIX "../usr/${ARCH}-w64-mingw32"
+!ifndef PREFIX
+!define PREFIX "../mingw64"
+!endif
 !define TRAININGDIR "${PREFIX}/bin"
 
 # General Definitions
@@ -197,7 +199,7 @@ Section -Main SEC0000
   File ${PREFIX}/bin/tesseract.exe
   File ${PREFIX}/bin/libtesseract-*.dll
 !ifdef CROSSBUILD
-  File ${SRCDIR}\dll\${ARCH}-w64-mingw32\*.dll
+  File ../dll/*.dll
 !endif
   File ${SRCDIR}\nsis\winpath.exe
   File ../doc/*.html

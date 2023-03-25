@@ -4,7 +4,7 @@ all:
 
 if MINGW
 
-gitrev="$(shell git --git-dir=${abs_top_srcdir}/.git --work-tree=${abs_top_srcdir} describe --always --tags)"
+gitrev="$(shell git --git-dir=${abs_top_srcdir}/.git --work-tree=${abs_top_srcdir} describe --always --tags | sed s/^v//)"
 
 .PHONY: winsetup
 
