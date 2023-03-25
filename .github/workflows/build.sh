@@ -2,7 +2,7 @@
 
 # GitHub actions - Create Tesseract installer for Windows
 
-# Author: Stefan Weil (2010)
+# Author: Stefan Weil (2010-2023)
 
 set -e
 set -x
@@ -10,11 +10,10 @@ set -x
 LANG=C.UTF-8
 
 ARCH=$1
-DLLS="libgcc_s_sjlj-1.dll libgomp-1.dll libstdc++-6.dll"
 
 if test "$ARCH" != "i686"; then
   ARCH=x86_64
-  DLLS="libgcc_s_seh-1.dll libgomp-1.dll libstdc++-6.dll"
+  MINGW=/mingw64
 fi
 
 ROOTDIR=$PWD
@@ -23,27 +22,64 @@ HOST=$ARCH-w64-mingw32
 BUILDDIR=bin/ndebug/$HOST-$TAG
 PKG_ARCH=mingw64-${ARCH/_/-}
 
-# Install cygwin key and add cygwin sources.
-sudo curl -o /etc/apt/trusted.gpg.d/weilnetz.gpg https://qemu.weilnetz.de/debian/weilnetz.gpg
-echo deb https://qemu.weilnetz.de/debian/ testing contrib | \
-  sudo tee /etc/apt/sources.list.d/cygwin.list
-
 # Install packages.
-sudo apt-get update
-sudo apt-get install --assume-yes --no-install-recommends \
+sudo apt-get update --quiet
+sudo apt-get install --assume-yes --no-install-recommends --quiet \
   asciidoc xsltproc docbook-xml docbook-xsl \
   automake dpkg-dev libtool pkg-config default-jdk-headless \
-  mingw-w64-tools nsis g++-mingw-w64-${ARCH/_/-} \
-  $PKG_ARCH-liblept5 $PKG_ARCH-curl \
-  $PKG_ARCH-libarchive $PKG_ARCH-giflib $PKG_ARCH-libpng \
-  $PKG_ARCH-libwebp $PKG_ARCH-openjpeg2 $PKG_ARCH-openssl $PKG_ARCH-tiff \
-  $PKG_ARCH-pango1.0 $PKG_ARCH-icu
+  mingw-w64-tools nsis g++-mingw-w64-${ARCH/_/-}
+
+# Install pacman-package-manager and its dependencies (from Ubuntu 22.10).
+sudo curl -Os http://de.archive.ubuntu.com/ubuntu/pool/universe/p/pacman-package-manager/pacman-package-manager_6.0.1-4_amd64.deb
+sudo curl -Os http://de.archive.ubuntu.com/ubuntu/pool/universe/p/pacman-package-manager/libalpm13_6.0.1-4_amd64.deb
+sudo curl -Os http://de.archive.ubuntu.com/ubuntu/pool/universe/p/pacman-package-manager/makepkg_6.0.1-4_amd64.deb
+sudo dpkg -i *.deb || true
+sudo apt-get install --fix-broken --assume-yes --no-install-recommends --quiet
+
+# Configure pacman.
+
+# Enable mirrorlist.
+sudo sed -Ei 's/^#.*(Include.*mirrorlist)/\1/' /etc/pacman.conf
+(
+# Add msys key for pacman.
+cd /usr/share/keyrings
+sudo curl -Os https://raw.githubusercontent.com/msys2/MSYS2-keyring/master/msys2.gpg
+sudo curl -Os https://raw.githubusercontent.com/msys2/MSYS2-keyring/master/msys2-revoked
+sudo curl -Os https://raw.githubusercontent.com/msys2/MSYS2-keyring/master/msys2-trusted
+)
+(
+# Add active environments for pacman.
+# See https://www.msys2.org/docs/repos-mirrors/.
+sudo mkdir -p /etc/pacman.d
+cd /etc/pacman.d
+cat <<eod | sudo tee mirrorlist >/dev/null
+[mingw64]
+Include = /etc/pacman.d/mirrorlist.mingw
+eod
+sudo curl -O https://raw.githubusercontent.com/msys2/MSYS2-packages/master/pacman-mirrors/mirrorlist.mingw
+# sudo curl -O https://raw.githubusercontent.com/msys2/MSYS2-packages/master/pacman-mirrors/mirrorlist.msys
+)
+
+sudo pacman-key --init
+sudo pacman-key --populate msys2
+sudo pacman -Syu --noconfirm
+
+# Install required pacman packages.
+sudo pacman -S --noconfirm \
+ mingw-w64-x86_64-curl-winssl \
+ mingw-w64-x86_64-giflib \
+ mingw-w64-x86_64-icu \
+ mingw-w64-x86_64-leptonica \
+ mingw-w64-x86_64-libarchive \
+ mingw-w64-x86_64-libidn2 \
+ mingw-w64-x86_64-openjpeg2 \
+ mingw-w64-x86_64-openssl \
+ mingw-w64-x86_64-pango \
+ mingw-w64-x86_64-libpng \
+ mingw-w64-x86_64-libtiff \
+ mingw-w64-x86_64-libwebp
 
 sudo ln -sf $PWD/.github/workflows/pkg-config-crosswrapper /usr/bin/$HOST-pkg-config
-
-for dll in $DLLS; do
-  ln -sf /usr/lib/gcc/$HOST/*-posix/$dll dll/$HOST
-done
 
 TAG=$(cat VERSION).$(date +%Y%m%d)
 
@@ -58,9 +94,12 @@ git tag -a v$TAG -m "Tesseract $TAG"
 mkdir -p $BUILDDIR && cd $BUILDDIR
 
 # Run configure.
+PKG_CONFIG_PATH=$MINGW/lib/pkgconfig
+export PKG_CONFIG_PATH
 ../../../configure --disable-openmp --host=$HOST --prefix=/usr/$HOST \
   CXX=$HOST-g++-posix \
-  CXXFLAGS="-fno-math-errno -Wall -Wextra -Wpedantic -g -O2"
+  CXXFLAGS="-fno-math-errno -Wall -Wextra -Wpedantic -g -O2 -isystem $MINGW/include" \
+  LDFLAGS="-L$MINGW/lib"
 
 make install-jars install training-install html winsetup prefix=$PWD/usr/$HOST
 
