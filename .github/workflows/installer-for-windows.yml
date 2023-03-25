@@ -7,9 +7,22 @@ on:
     branches:
     - 'windows'
 
+  # Trigger workflow in GitHub web frontend or from API.
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: 'Target operating system'
+        required: true
+        default: 'Windows (64 bit)'
+        type: choice
+        options:
+          - 'Windows (32 bit)'
+          - 'Windows (64 bit)'
+
 jobs:
   build32:
-    if: github.repository == 'UB-Mannheim/tesseract'
+    # Disable 32 bit builds.
+    if: github.repository == '_UB-Mannheim/tesseract'
     runs-on: [ubuntu-20.04]
     steps:
     - uses: actions/checkout@v2
@@ -22,7 +35,7 @@ jobs:
 
   build64:
     if: github.repository == 'UB-Mannheim/tesseract'
-    runs-on: [ubuntu-20.04]
+    runs-on: [ubuntu-22.04]
     steps:
     - uses: actions/checkout@v2
     - name: Build Tesseract installer (64 bit)
