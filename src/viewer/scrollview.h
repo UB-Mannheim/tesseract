@@ -298,7 +298,7 @@ public:
   // ...which can be added by this command.
   // This is intended as an "debug" output window.
   void AddMessage(const char *message);
-  void AddMessageF(const char *format, ...) __attribute__((format(printf, 2, 3)));
+  void AddMessageF(const char *format, ...) __attribute__((format(gnu_printf, 2, 3)));
 
   // Zoom the window to the rectangle given upper left corner and
   // lower right corner.
@@ -311,7 +311,7 @@ public:
   // this just for fun will likely break your application!
   // It is public so you can actually take use of the LUA functionalities, but
   // be careful!
-  void SendMsg(const char* msg, ...) __attribute__((format(printf, 2, 3)));
+  void SendMsg(const char* msg, ...) __attribute__((format(gnu_printf, 2, 3)));
 
   // Custom messages (manipulating java code directly) can be send through this.
   // Send a message to the server without adding the

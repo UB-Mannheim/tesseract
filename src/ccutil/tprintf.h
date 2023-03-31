@@ -34,7 +34,7 @@ extern TESS_API INT_VAR_H(log_level);
 // Main logging function.
 extern TESS_API void tprintf( // Trace printf
     const char *format, ...)  // Message
-    __attribute__((format(printf, 1, 2)));
+    __attribute__((format(gnu_printf, 1, 2)));
 
 // Get file for debug output.
 FILE *get_debugfp();
