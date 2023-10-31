@@ -8,33 +8,32 @@ Basic Installation
 ==================
 
    These are generic installation instructions. First you need to run
-`./autogen.sh', that creates `configure' script.
+./autogen.sh', that creates `configure' script.
 
    The `configure' shell script attempts to guess correct values for
 various system-dependent variables used during compilation.  It uses
-those values to create a `Makefile' in each directory of the package.
+those values to create a`Makefile' in each directory of the package.
 It may also create one or more `.h' files containing system-dependent
-definitions.  Finally, it creates a shell script `config.status' that
+definitions.  Finally, it creates a shell script`config.status' that
 you can run in the future to recreate the current configuration, and a
 file `config.log' containing compiler output (useful mainly for
-debugging `configure').
+debugging`configure').
 
    It can also use an optional file (typically called `config.cache'
-and enabled with `--cache-file=config.cache' or simply `-C') that saves
+and enabled with`--cache-file=config.cache' or simply `-C') that saves
 the results of its tests to speed up reconfiguring.  (Caching is
 disabled by default to prevent problems with accidental use of stale
 cache files.)
 
    If you need to do unusual things to compile the package, please try
 to figure out how `configure' could check whether to do them, and mail
-diffs or instructions to the address given in the `README' so they can
+diffs or instructions to the address given in the -`README' so they can
 be considered for the next release.  If you are using the cache, and at
 some point `config.cache' contains results you don't want to keep, you
 may remove or edit it.
 
-   The file `configure.ac' (or `configure.in') is used to create
-`configure' by a program called `autoconf'.  You only need
-`configure.ac' if you want to change it or regenerate `configure' using
+   The file`configure.ac' (or`configure.in'is used to create
+`configure' by a program called`autoconf'.  You only need`configure.ac'if you want to change it or regenerate`configure' using
 a newer version of `autoconf'.
 
 The simplest way to compile this package is:
@@ -107,7 +106,7 @@ option `--prefix=PATH'.
 
    You can specify separate installation prefixes for
 architecture-specific files and architecture-independent files.  If you
-give `configure' the option `--exec-prefix=PATH', the package will use
+give `configure' the option`--exec-prefix=PATH', the package will use
 PATH as the prefix for installing programs and libraries.
 Documentation and other data files will still use the regular prefix.
 
