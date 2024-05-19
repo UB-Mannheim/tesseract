@@ -612,6 +612,11 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data deu
   SectionEnd
 
+ Section /o "German Fraktur" SecLang_deu_latf
+    AddSize 6130
+    !insertmacro Download_Lang_Data deu_latf
+  SectionEnd
+
   Section /o "Divehi" SecLang_div
     AddSize 1690
     !insertmacro Download_Lang_Data div
@@ -670,11 +675,6 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
   Section /o "French" SecLang_fra
     AddSize 1080
     !insertmacro Download_Lang_Data fra
-  SectionEnd
-
- Section /o "German Fraktur" SecLang_frk
-    AddSize 6130
-    !insertmacro Download_Lang_Data frk
   SectionEnd
 
  Section /o "French - Middle (ca. 1400-1600)" SecLang_frm
