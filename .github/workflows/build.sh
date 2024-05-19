@@ -2,7 +2,7 @@
 
 # GitHub actions - Create Tesseract installer for Windows
 
-# Author: Stefan Weil (2010-2023)
+# Author: Stefan Weil (2010-2024)
 
 set -e
 set -x
@@ -27,14 +27,15 @@ sudo apt-get update --quiet
 sudo apt-get install --assume-yes --no-install-recommends --quiet \
   asciidoc xsltproc docbook-xml docbook-xsl \
   automake dpkg-dev libtool pkg-config default-jdk-headless \
-  mingw-w64-tools nsis g++-mingw-w64-${ARCH/_/-}
+  mingw-w64-tools nsis g++-mingw-w64-${ARCH/_/-} \
+  makepkg pacman-package-manager
 
 # Install pacman-package-manager and its dependencies (from Ubuntu 22.10).
-sudo curl -Os http://de.archive.ubuntu.com/ubuntu/pool/universe/p/pacman-package-manager/pacman-package-manager_6.0.1-4_amd64.deb
-sudo curl -Os http://de.archive.ubuntu.com/ubuntu/pool/universe/p/pacman-package-manager/libalpm13_6.0.1-4_amd64.deb
-sudo curl -Os http://de.archive.ubuntu.com/ubuntu/pool/universe/p/pacman-package-manager/makepkg_6.0.1-4_amd64.deb
-sudo dpkg -i *.deb || true
-sudo apt-get install --fix-broken --assume-yes --no-install-recommends --quiet
+# sudo curl -Os http://de.archive.ubuntu.com/ubuntu/pool/universe/p/pacman-package-manager/pacman-package-manager_6.0.1-4_amd64.deb
+# sudo curl -Os http://de.archive.ubuntu.com/ubuntu/pool/universe/p/pacman-package-manager/libalpm13_6.0.1-4_amd64.deb
+# sudo curl -Os http://de.archive.ubuntu.com/ubuntu/pool/universe/p/pacman-package-manager/makepkg_6.0.1-4_amd64.deb
+# sudo dpkg -i *.deb || true
+# sudo apt-get install --fix-broken --assume-yes --no-install-recommends --quiet
 
 # Configure pacman.
 

@@ -23,7 +23,7 @@ jobs:
   build32:
     # Disable 32 bit builds.
     if: github.repository == '_UB-Mannheim/tesseract'
-    runs-on: [ubuntu-20.04]
+    runs-on: [ubuntu-24.04]
     steps:
     - uses: actions/checkout@v4
     - name: Build Tesseract installer (32 bit)
@@ -35,7 +35,7 @@ jobs:
 
   build64:
     if: github.repository == 'UB-Mannheim/tesseract'
-    runs-on: [ubuntu-22.04]
+    runs-on: [ubuntu-24.04]
     steps:
     - uses: actions/checkout@v4
     - name: Build Tesseract installer (64 bit)
