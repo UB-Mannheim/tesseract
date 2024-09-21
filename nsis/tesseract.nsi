@@ -497,6 +497,11 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data afr
   SectionEnd
 
+  Section /o "Albanian" SecLang_sqi
+    AddSize 1790
+    !insertmacro Download_Lang_Data sqi
+  SectionEnd
+
   Section /o "Amharic" SecLang_amh
     AddSize 5220
     !insertmacro Download_Lang_Data amh
@@ -505,6 +510,11 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
   Section /o "Arabic" SecLang_ara
     AddSize 1370
     !insertmacro Download_Lang_Data ara
+  SectionEnd
+
+  Section /o "Armenian" SecLang_hye
+    AddSize 3300
+    !insertmacro Download_Lang_Data hye
   SectionEnd
 
   Section /o "Assamese" SecLang_asm
@@ -522,6 +532,11 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data aze_cyrl
   SectionEnd
 
+  Section /o "Basque" SecLang_eus
+    AddSize 4940
+    !insertmacro Download_Lang_Data eus
+  SectionEnd
+
   Section /o "Belarusian" SecLang_bel
     AddSize 3520
     !insertmacro Download_Lang_Data bel
@@ -530,11 +545,6 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
   Section /o "Bengali" SecLang_ben
     AddSize 836
     !insertmacro Download_Lang_Data ben
-  SectionEnd
-
-  Section /o "Tibetan" SecLang_bod
-    AddSize 1880
-    !insertmacro Download_Lang_Data bod
   SectionEnd
 
   Section /o "Bosnian" SecLang_bos
@@ -552,6 +562,11 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data bul
   SectionEnd
 
+  Section /o "Burmese" SecLang_mya
+    AddSize 4430
+    !insertmacro Download_Lang_Data mya
+  SectionEnd
+
   Section /o "Catalan" SecLang_cat
     AddSize 1090
     !insertmacro Download_Lang_Data cat
@@ -562,9 +577,9 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data ceb
   SectionEnd
 
-  Section /o "Czech" SecLang_ces
-    AddSize 3620
-    !insertmacro Download_Lang_Data ces
+  Section /o "Cherokee" SecLang_chr
+    AddSize 366
+    !insertmacro Download_Lang_Data chr
   SectionEnd
 
   Section /o "Chinese (Simplified)" SecLang_chi_sim
@@ -587,19 +602,19 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data chi_tra_vert
   SectionEnd
 
-  Section /o "Cherokee" SecLang_chr
-    AddSize 366
-    !insertmacro Download_Lang_Data chr
-  SectionEnd
-
   Section /o "Corsican" SecLang_cos
     AddSize 2190
     !insertmacro Download_Lang_Data cos
   SectionEnd
 
-  Section /o "Welsh" SecLang_cym
-    AddSize 2110
-    !insertmacro Download_Lang_Data cym
+  Section /o "Croatian" SecLang_hrv
+    AddSize 3910
+    !insertmacro Download_Lang_Data hrv
+  SectionEnd
+
+  Section /o "Czech" SecLang_ces
+    AddSize 3620
+    !insertmacro Download_Lang_Data ces
   SectionEnd
 
   Section /o "Danish" SecLang_dan
@@ -607,29 +622,19 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data dan
   SectionEnd
 
-  Section /o "German" SecLang_deu
-    AddSize 1450
-    !insertmacro Download_Lang_Data deu
-  SectionEnd
-
- Section /o "German Fraktur" SecLang_deu_latf
-    AddSize 6130
-    !insertmacro Download_Lang_Data deu_latf
-  SectionEnd
-
   Section /o "Divehi" SecLang_div
     AddSize 1690
     !insertmacro Download_Lang_Data div
   SectionEnd
 
+  Section /o "Dutch; Flemish" SecLang_nld 
+    AddSize 5770
+    !insertmacro Download_Lang_Data nld
+  SectionEnd
+
   Section /o "Dzongkha" SecLang_dzo
     AddSize 439
     !insertmacro Download_Lang_Data dzo
-  SectionEnd
-
-  Section /o "Greek" SecLang_ell
-    AddSize 1350
-    !insertmacro Download_Lang_Data ell
   SectionEnd
 
   Section /o "English - Middle (1100-1500)" SecLang_enm
@@ -647,19 +652,9 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data est
   SectionEnd
 
-  Section /o "Basque" SecLang_eus
-    AddSize 4940
-    !insertmacro Download_Lang_Data eus
-  SectionEnd
-
   Section /o "Faroese" SecLang_fao
     AddSize 3280
     !insertmacro Download_Lang_Data fao
-  SectionEnd
-
-  Section /o "Persian" SecLang_fas
-    AddSize 421
-    !insertmacro Download_Lang_Data fas
   SectionEnd
 
   Section /o "Filipino" SecLang_fil
@@ -667,7 +662,7 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data fil
   SectionEnd
 
- Section /o "Finnish" SecLang_fin
+  Section /o "Finnish" SecLang_fin
     AddSize 7500
     !insertmacro Download_Lang_Data fin
   SectionEnd
@@ -677,7 +672,7 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data fra
   SectionEnd
 
- Section /o "French - Middle (ca. 1400-1600)" SecLang_frm
+  Section /o "French - Middle (ca. 1400-1600)" SecLang_frm
     AddSize 1930
     !insertmacro Download_Lang_Data frm
   SectionEnd
@@ -692,14 +687,34 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data gla
   SectionEnd
 
-  Section /o "Irish" SecLang_gle
-    AddSize 1130
-    !insertmacro Download_Lang_Data gle
-  SectionEnd
-
   Section /o "Galician" SecLang_glg
     AddSize 2440
     !insertmacro Download_Lang_Data glg
+  SectionEnd
+
+  Section /o "Georgian" SecLang_kat
+    AddSize 2410
+    !insertmacro Download_Lang_Data kat
+  SectionEnd
+
+  Section /o "Georgian (Old)" SecLang_kat_old
+    AddSize 413
+    !insertmacro Download_Lang_Data kat_old
+  SectionEnd
+
+  Section /o "German" SecLang_deu
+    AddSize 1450
+    !insertmacro Download_Lang_Data deu
+  SectionEnd
+
+  Section /o "German Fraktur" SecLang_deu_latf
+    AddSize 6130
+    !insertmacro Download_Lang_Data deu_latf
+  SectionEnd
+
+  Section /o "Greek" SecLang_ell
+    AddSize 1350
+    !insertmacro Download_Lang_Data ell
   SectionEnd
 
   Section /o "Greek, Ancient (-1453)" SecLang_grc
@@ -727,24 +742,14 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data hin
   SectionEnd
 
-  Section /o "Croatian" SecLang_hrv
-    AddSize 3910
-    !insertmacro Download_Lang_Data hrv
-  SectionEnd
-
   Section /o "Hungarian" SecLang_hun
     AddSize 5050
     !insertmacro Download_Lang_Data hun
   SectionEnd
 
-  Section /o "Armenian" SecLang_hye
-    AddSize 3300
-    !insertmacro Download_Lang_Data hye
-  SectionEnd
-
-  Section /o "Inuktitut" SecLang_iku
-    AddSize 2670
-    !insertmacro Download_Lang_Data iku
+  Section /o "Icelandic" SecLang_isl  
+    AddSize 2170
+    !insertmacro Download_Lang_Data isl
   SectionEnd
 
   Section /o "Indonesian" SecLang_ind
@@ -752,9 +757,14 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data ind
   SectionEnd
 
-  Section /o "Icelandic" SecLang_isl
-    AddSize 2170
-    !insertmacro Download_Lang_Data isl
+  Section /o "Inuktitut" SecLang_iku
+    AddSize 2670
+    !insertmacro Download_Lang_Data iku
+  SectionEnd
+
+  Section /o "Irish" SecLang_gle
+    AddSize 1130
+    !insertmacro Download_Lang_Data gle
   SectionEnd
 
   Section /o "Italian" SecLang_ita
@@ -767,11 +777,6 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data ita_old
   SectionEnd
 
-  Section /o "Javanese" SecLang_jav
-    AddSize 2840
-    !insertmacro Download_Lang_Data jav
-  SectionEnd
-
   Section /o "Japanese" SecLang_jpn
     AddSize 2360
     !insertmacro Download_Lang_Data jpn
@@ -782,19 +787,14 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data jpn_vert
   SectionEnd
 
+  Section /o "Javanese" SecLang_jav
+    AddSize 2840
+    !insertmacro Download_Lang_Data jav
+  SectionEnd
+
   Section /o "Kannada" SecLang_kan
     AddSize 3440
     !insertmacro Download_Lang_Data kan
-  SectionEnd
-
-  Section /o "Georgian" SecLang_kat
-    AddSize 2410
-    !insertmacro Download_Lang_Data kat
-  SectionEnd
-
-  Section /o "Georgian (Old)" SecLang_kat_old
-    AddSize 413
-    !insertmacro Download_Lang_Data kat_old
   SectionEnd
 
   Section /o "Kazakh" SecLang_kaz
@@ -802,14 +802,14 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data kaz
   SectionEnd
 
-  Section /o "Central Khmer" SecLang_khm
-    AddSize 1380
-    !insertmacro Download_Lang_Data khm
-  SectionEnd
-
   Section /o "Kirghiz" SecLang_kir
     AddSize 9470
     !insertmacro Download_Lang_Data kir
+  SectionEnd
+
+  Section /o "Khmer (Central)" SecLang_khm
+    AddSize 1380
+    !insertmacro Download_Lang_Data khm
   SectionEnd
 
   Section /o "Korean" SecLang_kor
@@ -847,6 +847,11 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data ltz
   SectionEnd
 
+  Section /o "Malay" SecLang_msa
+    AddSize 1670
+    !insertmacro Download_Lang_Data msa
+  SectionEnd
+
   Section /o "Malayalam" SecLang_mal
     AddSize 5030
     !insertmacro Download_Lang_Data mal
@@ -877,24 +882,9 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data mri
   SectionEnd
 
-  Section /o "Malay" SecLang_msa
-    AddSize 1670
-    !insertmacro Download_Lang_Data msa
-  SectionEnd
-
-  Section /o "Burmese" SecLang_mya
-    AddSize 4430
-    !insertmacro Download_Lang_Data mya
-  SectionEnd
-
   Section /o "Nepali" SecLang_nep
     AddSize 979
     !insertmacro Download_Lang_Data nep
-  SectionEnd
-
-  Section /o "Dutch; Flemish" SecLang_nld
-    AddSize 5770
-    !insertmacro Download_Lang_Data nld
   SectionEnd
 
   Section /o "Norwegian" SecLang_nor
@@ -915,6 +905,11 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
   Section /o "Panjabi / Punjabi" SecLang_pan
     AddSize 4860
     !insertmacro Download_Lang_Data pan
+  SectionEnd
+
+  Section /o "Persian" SecLang_fas
+    AddSize 421
+    !insertmacro Download_Lang_Data fas
   SectionEnd
 
   Section /o "Polish" SecLang_pol
@@ -982,11 +977,6 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data spa_old
   SectionEnd
 
-  Section /o "Albanian" SecLang_sqi
-    AddSize 1790
-    !insertmacro Download_Lang_Data sqi
-  SectionEnd
-
   Section /o "Serbian" SecLang_srp
     AddSize 2050
     !insertmacro Download_Lang_Data srp
@@ -1042,6 +1032,11 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
     !insertmacro Download_Lang_Data tha
   SectionEnd
 
+  Section /o "Tibetan" SecLang_bod
+    AddSize 1880
+    !insertmacro Download_Lang_Data bod
+  SectionEnd
+
   Section /o "Tigrinya" SecLang_tir
     AddSize 370
     !insertmacro Download_Lang_Data tir
@@ -1085,6 +1080,11 @@ SectionGroup "Additional language data (download)" SecGrp_ALD
   Section /o "Vietnamese" SecLang_vie
     AddSize 519
     !insertmacro Download_Lang_Data vie
+  SectionEnd
+
+  Section /o "Welsh" SecLang_cym
+    AddSize 2110
+    !insertmacro Download_Lang_Data cym
   SectionEnd
 
   Section /o "Yiddish" SecLang_yid
