@@ -11,22 +11,23 @@
 
 ## Table of Contents
 
-* [Tesseract OCR](#tesseract-ocr)
-  * [About](#about)
-  * [Brief history](#brief-history)
-  * [Installing Tesseract](#installing-tesseract)
-  * [Running Tesseract](#running-tesseract)
-  * [For developers](#for-developers)
-  * [Support](#support)
-  * [License](#license)
-  * [Dependencies](#dependencies)
-  * [Latest Version of README](#latest-version-of-readme)
+- [Tesseract OCR](#tesseract-ocr)
+  - [Table of Contents](#table-of-contents)
+  - [About](#about)
+  - [Brief history](#brief-history)
+  - [Installing Tesseract](#installing-tesseract)
+  - [Running Tesseract](#running-tesseract)
+  - [For developers](#for-developers)
+  - [Support](#support)
+  - [License](#license)
+  - [Dependencies](#dependencies)
+  - [Latest Version of README](#latest-version-of-readme)
 
 ## About
 
 This package contains an **OCR engine** - `libtesseract` and a **command line program** - `tesseract`.
 
-Tesseract 4 adds a new neural net (LSTM) based [OCR engine](https://en.wikipedia.org/wiki/Optical_character_recognition) which is focused on line recognition, but also still supports the legacy Tesseract OCR engine of Tesseract 3 which works by recognizing character patterns. Compatibility with Tesseract 3 is enabled by using the Legacy OCR Engine mode (--oem 0).
+Tesseract 4 adds a new neural net llm (LSTM) based [OCR engine](https://en.wikipedia.org/wiki/Optical_character_recognition) which is focused on line recognition, but also still supports the legacy Tesseract OCR engine of Tesseract 3 which works by recognizing character patterns. Compatibility with Tesseract 3 is enabled by using the Legacy OCR Engine mode (--oem 0).
 It also needs [traineddata](https://tesseract-ocr.github.io/tessdoc/Data-Files.html) files which support the legacy engine, for example those from the [tessdata](https://github.com/tesseract-ocr/tessdata) repository.
 
 Stefan Weil is the current lead developer. Ray Smith was the lead developer until 2018. The maintainer is Zdenko Podobny. For a list of contributors see [AUTHORS](https://github.com/tesseract-ocr/tesseract/blob/main/AUTHORS)
