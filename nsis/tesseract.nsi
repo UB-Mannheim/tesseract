@@ -110,7 +110,7 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 !define MULTIUSER_INSTALLMODE_DEFAULT_REGISTRY_KEY "${REGKEY}"
 !define MULTIUSER_INSTALLMODE_DEFAULT_REGISTRY_VALUENAME MultiUserInstallMode
 !define MULTIUSER_INSTALLMODE_COMMANDLINE
-!define MULTIUSER_INSTALLMODE_INSTDIR ${PRODUCT_NAME}
+# !define MULTIUSER_INSTALLMODE_INSTDIR ${PRODUCT_NAME}
 !define MULTIUSER_INSTALLMODE_INSTDIR_REGISTRY_KEY "${REGKEY}"
 !define MULTIUSER_INSTALLMODE_INSTDIR_REGISTRY_VALUE "Path"
 !ifdef W64
@@ -143,8 +143,6 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 # Included files
 !include MultiUser.nsh
 !include Sections.nsh
-!include MUI2.nsh
-!include LogicLib.nsh
 !include winmessages.nsh # include for some of the windows messages defines
 
 # Variables
@@ -1183,9 +1181,9 @@ Section -un.Main UNSEC0000
   # remove the Add/Remove information
   DeleteRegKey HKLM "${UNINST_KEY}"
   Delete "${UNINST_EXE}"
-  DeleteRegValue HKLM "${REGKEY}" Path
-  DeleteRegKey /IfEmpty HKLM "${REGKEY}\Components"
-  DeleteRegKey /IfEmpty HKLM "${REGKEY}"
+  DeleteRegValue SHCTX "${REGKEY}" Path
+  DeleteRegKey /IfEmpty SHCTX "${REGKEY}\Components"
+  DeleteRegKey /IfEmpty SHCTX "${REGKEY}"
   Delete "$INSTDIR\*.dll"
   Delete "$INSTDIR\*.exe"
   Delete "$INSTDIR\*.html"
@@ -1221,6 +1219,16 @@ Function .onInit
   !insertmacro MUI_LANGDLL_DISPLAY
   ;RequestExecutionLevel admin
   !insertmacro MULTIUSER_INIT
+  MessageBox MB_OK|MB_ICONINFORMATION ".onInit (start): INSTDIR=$INSTDIR"
+  ${If} $INSTDIR == ""
+    ${If} $MultiUser.InstallMode == "AllUsers"
+      StrCpy $INSTDIR "$PROGRAMFILES64\${PRODUCT_NAME}"
+      MessageBox MB_OK|MB_ICONINFORMATION ".onInit (AllUsers): INSTDIR=$INSTDIR"
+    ${Else}
+      StrCpy $INSTDIR "$LOCALAPPDATA\${PRODUCT_NAME}"
+      MessageBox MB_OK|MB_ICONINFORMATION ".onInit (LocalUser): INSTDIR=$INSTDIR"
+    ${EndIf}
+  ${EndIf}
 
   ; is tesseract already installed?
   ReadRegStr $R0 HKCU "${REGKEY}" "CurrentVersion"

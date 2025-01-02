@@ -5,36 +5,42 @@
 # SPDX-License-Identifier: MIT
 #
 # Find the DLL files which are required for a given set of
-# Windows executables and libraries.
+# Windows binaries (executables, libraries, ...).
 
 import argparse
 import os
 import pefile
 
-VERBOSE = False
-
-def find_dependencies(binary, search_path, analyzed_deps):
+def find_dependencies(args, binary, analyzed_deps):
     pe = pefile.PE(binary)
     pe.parse_data_directories()
-    if VERBOSE:
-        print(f'{binary}:')
-    # print(pe.dump_info())
+    if args.verbose:
+        print(f'{binary=}')
+        # print(pe.dump_info())
 
     for entry in pe.DIRECTORY_ENTRY_IMPORT:
         name = entry.dll.decode('utf-8')
         if name in analyzed_deps:
-            if VERBOSE:
+            if args.verbose:
                 print(f'skip {name} (already analyzed)')
             continue
         analyzed_deps.add(name)
-        fullpath = os.path.join(search_path, name)
-        if not os.path.exists(fullpath):
-            # Not found, maybe system DLL. Skip it.
-            if VERBOSE:
-                print(f'skip {name} (not found, maybe system DLL)')
+        if args.dlldir is None:
             continue
-        print(fullpath)
-        analyzed_deps = find_dependencies(fullpath, search_path, analyzed_deps)
+        found = False
+        # Search DLL in all given DLL directories.
+        for search_path in args.dlldir:
+            fullpath = os.path.join(search_path, name)
+            if not os.path.exists(fullpath):
+                continue
+            print(fullpath)
+            analyzed_deps = find_dependencies(args, fullpath, analyzed_deps)
+            found = True
+            break
+        if not found:
+            # Not found, maybe system DLL. Skip it.
+            if args.verbose:
+                print(f'skip {name} (not found, maybe system DLL)')
 
     return analyzed_deps
 
@@ -43,10 +49,10 @@ def main():
     Command-line interface for universal dependency scanner.
     """
 
-    parser = argparse.ArgumentParser(description='Find and copy DLL dependencies')
-    parser.add_argument('files', nargs='+', help='Paths to executable or library files')
-    parser.add_argument('--dlldir', dest='dlldir', default='/mingw64/bin/',
-                        help='path to dll files')
+    parser = argparse.ArgumentParser(description='List required DLL dependencies for a set of given Windows binaries (executables, libraries, ...).')
+    parser.add_argument('files', nargs='*', metavar='FILE', help='paths to executable or library files')
+    parser.add_argument('--verbose', action='store_true', help='enable verbose output')
+    parser.add_argument('--dlldir', action='append', metavar='DIRNAME', help='directory to search for DLLs (may be given more than once)')
 
     args = parser.parse_args()
 
@@ -55,7 +61,7 @@ def main():
     analyzed_deps = set()
     for binary in args.files:
         if True:
-            analyzed_deps = find_dependencies(binary, args.dlldir, analyzed_deps)
+            analyzed_deps = find_dependencies(args, binary, analyzed_deps)
         # except:
         #    print(f'error: failed to find dependencies for {binary}')
 

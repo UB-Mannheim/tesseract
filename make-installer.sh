@@ -27,7 +27,7 @@ for ARCH in $ARCHS; do
 
   # Disable OpenMP (see https://github.com/tesseract-ocr/tesseract/issues/1662).
   ../../../configure --disable-openmp --host=$HOST --prefix=$MINGW CXX=$HOST-g++-posix CXXFLAGS="-fno-math-errno -Wall -Wextra -Wpedantic -g -O2 -I$MINGW/include" LDFLAGS="-L$MINGW/lib"
-  make install-jars install training-install html prefix=${MINGW_INSTALL}
+  make install-jars install training-install html prefix=${MINGW_INSTALL} INSTALL_STRIP_FLAG=-s
   (
   cd ${MINGW_INSTALL}/bin
   for file in *.exe *.dll; do
@@ -35,7 +35,9 @@ for ARCH in $ARCHS; do
   done
   )
   mkdir -p dll
-  ln -sv $($SRCDIR/nsis/find_deps.py $MINGW_INSTALL/bin/*.exe $MINGW_INSTALL/bin/*.dll) dll/
+  ln -sv $("$SRCDIR/nsis/find_deps.py" "$MINGW_INSTALL"/bin/*.exe "$MINGW_INSTALL"/bin/*.dll) dll/
+  ln -svf /usr/lib/gcc/x86_64-w64-mingw32/*-posix/libstdc++-6.dll dll/
+  ln -svf /usr/lib/gcc/x86_64-w64-mingw32/*-posix/libgcc_s_seh-1.dll dll/
   make winsetup prefix=${MINGW_INSTALL} SIGNCODE=signcode
   )
 done
